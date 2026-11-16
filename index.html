@@ -32,6 +32,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-ui)}
 .wrap{max-width:1300px;margin:0 auto;padding-block:22px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -86,7 +87,7 @@ svg.chart .halo{paint-order:stroke;stroke:var(--surface);stroke-width:3.5px;stro
 svg.chart .grid{stroke:var(--grid);stroke-width:1}
 svg.chart .axis{stroke:var(--muted);stroke-width:1.2}
 svg.chart .cloud{stroke:var(--cloud);stroke-width:2.6;stroke-linecap:round;fill:none}
-svg.chart .longonly{stroke:var(--curve);stroke-width:7;stroke-linecap:round;fill:none;opacity:.16}
+svg.chart .corner{fill:var(--surface);stroke:var(--curve);stroke-width:2.5}
 svg.chart .eff{stroke:var(--curve);stroke-width:3;fill:none;stroke-linejoin:round}
 svg.chart .ineff{stroke:var(--curve);stroke-width:2;fill:none;stroke-dasharray:6 5;opacity:.75}
 svg.chart .guide{stroke:var(--sel);stroke-width:1.2;stroke-dasharray:4 4;fill:none}
@@ -94,7 +95,7 @@ svg.chart .selpt{fill:var(--sel);stroke:var(--surface);stroke-width:2}
 svg.chart .selhalo{fill:var(--sel);opacity:.18}
 svg.chart .gmvpt{fill:var(--gmv);stroke:var(--surface);stroke-width:1.5}
 svg.chart .asset{stroke:var(--surface);stroke-width:2}
-svg.chart[data-step="0"] .cloud,svg.chart[data-step="0"] .longonly{opacity:1}
+svg.chart[data-step="0"] .cloud{opacity:1}
 svg.chart[data-step="4"] .eff{stroke-width:4.5}
 svg.chart[data-step="5"] .gmvpt{transform-box:fill-box;transform-origin:center;transform:scale(1.35)}
 svg.chart[data-step="5"] .ineff{opacity:1}
@@ -106,7 +107,7 @@ svg.chart[data-step="5"] .ineff{opacity:1}
 .lg-gmv{width:10px;height:10px;background:var(--gmv);transform:rotate(45deg)}
 .lg-sel{width:11px;height:11px;border-radius:50%;background:var(--sel)}
 .lg-cloud{width:11px;height:11px;border-radius:50%;background:var(--cloud)}
-.lg-long{width:22px;height:6px;border-radius:3px;background:var(--curve);opacity:.25}
+.lg-corner{width:11px;height:11px;border-radius:50%;border:2.5px solid var(--curve);background:var(--surface)}
 /* derivation */
 .steps{display:grid;grid-template-columns:220px minmax(0,1fr);gap:18px}
 @media (max-width:760px){.steps{grid-template-columns:minmax(0,1fr)}}
@@ -147,7 +148,7 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:80ch}
   <header class="top">
     <div>
       <h1>Deriving the efficient frontier</h1>
-      <p class="sub">Markowitz mean–variance model: minimise portfolio variance for a target return, then read off the frontier. Change the inputs, drag on the chart, and follow the six steps.</p>
+      <p class="sub">Markowitz mean–variance model without short sales: minimise portfolio variance for a target return, with weights that are never negative and add up to one. Change the inputs, drag on the chart, and follow the six steps.</p>
     </div>
     <button class="btn" id="theme" type="button" aria-label="Switch color theme">Theme: auto</button>
   </header>
@@ -173,7 +174,7 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:80ch}
           <p class="hint">You can also click or drag on the chart to set <i>m</i>.</p>
         </div>
         <div class="ctl-group">
-          <label class="chk" id="cloudRow"><input id="cloudChk" type="checkbox" checked> Show long-only portfolios</label>
+          <label class="chk" id="cloudRow"><input id="cloudChk" type="checkbox" checked> Show random long-only portfolios</label>
           <button class="btn" id="reset" type="button">Reset to the exercise values</button>
         </div>
         <div class="ctl-group" id="msg" aria-live="polite"></div>
@@ -204,14 +205,14 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:80ch}
 
       <section class="card" aria-labelledby="wTitle">
         <div class="card-head"><h2 id="wTitle">Weights along the frontier</h2></div>
-        <p class="hint" style="margin-bottom:8px">Each weight is a straight line in <i>m</i>. That is why any two frontier portfolios are enough to build the whole frontier (two-fund separation).</p>
+        <p class="hint" style="margin-bottom:8px">Weights are never negative and always add up to 100%. Between two corner portfolios each weight is a straight line in <i>m</i>, so two portfolios on the same piece generate the rest of it.</p>
         <div class="chartbox"><svg class="chart" id="wchart" role="img" aria-label="Portfolio weights as a function of target return" viewBox="0 0 680 300"></svg></div>
         <div class="legend" id="wlegend"></div>
       </section>
     </main>
   </div>
   <footer>
-    Assumptions: short sales are allowed (weights can be negative), there is no risk-free asset, and returns are summarised by their means and covariance matrix. Notation follows the course slides: A = 1<sup>T</sup>Σ<sup>−1</sup>1, B = 1<sup>T</sup>Σ<sup>−1</sup>μ, C = μ<sup>T</sup>Σ<sup>−1</sup>μ, D = AC − B². Adding a risk-free asset turns the frontier into the Capital Market Line (next lecture, CAPM).
+    Assumptions: short sales are not allowed (every weight is at least 0 and the weights add up to 1), there is no risk-free asset, and returns are summarised by their means and covariance matrix. Notation follows the course slides: for the set S of assets held, A<sub>S</sub> = 1<sup>T</sup>Σ<sub>S</sub><sup>−1</sup>1, B<sub>S</sub> = 1<sup>T</sup>Σ<sub>S</sub><sup>−1</sup>μ, C<sub>S</sub> = μ<sup>T</sup>Σ<sub>S</sub><sup>−1</sup>μ, D<sub>S</sub> = A<sub>S</sub>C<sub>S</sub> − B<sub>S</sub><sup>2</sup>. Adding a risk-free asset turns the frontier into the Capital Market Line (next lecture, CAPM).
   </footer>
 </div>
 
@@ -248,6 +249,106 @@ const Core = (function () {
     if (n === 3) { R[0][2] = R[2][0] = rho[1]; R[1][2] = R[2][1] = rho[2]; }
     return { R: R, S: R.map(function (r, i) { return r.map(function (x, j) { return x * sd[i] * sd[j]; }); }) };
   }
+  function quad(S, w) { return dot(w, matVec(S, w)); }
+  function subsets(n) {
+    const out = [];
+    for (let mask = 1; mask < (1 << n); mask++) {
+      const s = [];
+      for (let i = 0; i < n; i++) if (mask & (1 << i)) s.push(i);
+      out.push(s);
+    }
+    return out;
+  }
+  // quantities A, B, C, D of the equality-constrained problem restricted to the assets in idx
+  function blockOf(S, mu, idx) {
+    const Ss = idx.map(function (i) { return idx.map(function (j) { return S[i][j]; }); });
+    const ms = idx.map(function (i) { return mu[i]; });
+    const Si = inv(Ss);
+    if (!Si) return null;
+    const one = ms.map(function () { return 1; });
+    const Sm = matVec(Si, ms), S1 = matVec(Si, one);
+    const A = dot(one, S1), B = dot(one, Sm), C = dot(ms, Sm), D = A * C - B * B;
+    return { idx: idx, k: idx.length, Si: Si, Sm: Sm, S1: S1, A: A, B: B, C: C, D: D,
+      flat: !(D > 1e-12 * Math.max(1, A * C)), wg: S1.map(function (x) { return x / A; }) };
+  }
+  // Long-only minimum-variance portfolio for target return m: try every set of assets that could be held,
+  // solve the equality-constrained problem on that set, keep the candidates with no negative weight, take the lowest variance.
+  function solveAt(model, m) {
+    const n = model.n;
+    let best = null;
+    if (m < model.mmin - 1e-12 || m > model.mmax + 1e-12) return null;
+    for (let q = 0; q < model.blocks.length; q++) {
+      const b = model.blocks[q];
+      let ws;
+      if (b.flat) {
+        const mu0 = model.mu[b.idx[0]];
+        const same = b.idx.every(function (i) { return Math.abs(model.mu[i] - mu0) < 1e-12; });
+        if (!same || Math.abs(m - mu0) > 1e-10) continue;
+        ws = b.wg;
+      } else {
+        const a = (b.A * m - b.B) / b.D, c = (b.C - b.B * m) / b.D;
+        ws = b.Sm.map(function (x, i) { return a * x + c * b.S1[i]; });
+      }
+      if (ws.some(function (x) { return x < -1e-9; })) continue;
+      const w = new Array(n).fill(0);
+      b.idx.forEach(function (i, j) { w[i] = Math.max(ws[j], 0); });
+      const v = quad(model.S, w);
+      if (!best || v < best.v - 1e-15) best = { w: w, v: v };
+    }
+    return best;
+  }
+  function gmvLO(model) {
+    const n = model.n;
+    let best = null;
+    model.blocks.forEach(function (b) {
+      if (b.wg.some(function (x) { return x < -1e-9; })) return;
+      const w = new Array(n).fill(0);
+      b.idx.forEach(function (i, j) { w[i] = Math.max(b.wg[j], 0); });
+      const v = quad(model.S, w);
+      if (!best || v < best.v - 1e-15) best = { w: w, v: v, m: dot(w, model.mu) };
+    });
+    return best;
+  }
+  function support(model, m) {
+    const s = solveAt(model, m);
+    if (!s) return -1;
+    let k = 0;
+    s.w.forEach(function (x, i) { if (x > 1e-9) k |= (1 << i); });
+    return k;
+  }
+  // target returns at which an asset enters or leaves the portfolio
+  function breakpoints(model) {
+    const out = [], N = 1500, lo = model.mmin, hi = model.mmax;
+    let prevM = lo + (hi - lo) / N, prevS = support(model, prevM);
+    for (let i = 2; i < N; i++) {
+      const m = lo + (hi - lo) * i / N, s = support(model, m);
+      if (s !== prevS) {
+        let a = prevM, b = m;
+        for (let it = 0; it < 50; it++) { const mid = (a + b) / 2; if (support(model, mid) === prevS) a = mid; else b = mid; }
+        const bp = (a + b) / 2;
+        if (!out.length || Math.abs(out[out.length - 1] - bp) > 1e-6) out.push(bp);
+      }
+      prevM = m; prevS = s;
+    }
+    return out;
+  }
+  // everything needed to show the derivation at target m
+  function detail(model, m) {
+    const sol = solveAt(model, m);
+    if (!sol) return null;
+    const w = sol.w, n = model.n, supp = [];
+    w.forEach(function (x, i) { if (x > 1e-9) supp.push(i); });
+    let b = null;
+    model.blocks.forEach(function (bl) { if (bl.k === supp.length && bl.idx.every(function (v, k) { return v === supp[k]; })) b = bl; });
+    let lam = null, gam = null;
+    const nu = [];
+    if (b && !b.flat) {
+      lam = 2 * (b.A * m - b.B) / b.D; gam = 2 * (b.C - b.B * m) / b.D;
+      const Sw = matVec(model.S, w);
+      for (let j = 0; j < n; j++) if (supp.indexOf(j) < 0) nu.push({ j: j, v: 2 * Sw[j] - lam * model.mu[j] - gam });
+    }
+    return { w: w, v: sol.v, supp: supp, block: b, lam: lam, gam: gam, nu: nu };
+  }
   // mu, sd in decimals (0.08 = 8%)
   function fit(mu, sd, rho) {
     const n = mu.length;
@@ -256,26 +357,19 @@ const Core = (function () {
     const dR = n === 2 ? 1 - R[0][1] * R[0][1]
       : 1 + 2 * R[0][1] * R[0][2] * R[1][2] - R[0][1] * R[0][1] - R[0][2] * R[0][2] - R[1][2] * R[1][2];
     if (!(dR > 1e-9)) return { ok: false, reason: 'pd', S: S };
-    if (Math.max.apply(null, mu) - Math.min.apply(null, mu) < 1e-9) return { ok: false, reason: 'means', S: S };
-    const Si = inv(S);
-    if (!Si) return { ok: false, reason: 'pd', S: S };
-    const one = mu.map(function () { return 1; });
-    const Sm = matVec(Si, mu), S1 = matVec(Si, one);
-    const A = dot(one, S1), B = dot(one, Sm), C = dot(mu, Sm), D = A * C - B * B;
-    if (!(A > 0) || !(D > 1e-14)) return { ok: false, reason: 'means', S: S };
-    const mg = B / A;
-    const model = {
-      ok: true, n: n, S: S, R: R, Si: Si, mu: mu, Sm: Sm, S1: S1, A: A, B: B, C: C, D: D,
-      mg: mg, vg: 1 / A, wg: S1.map(function (x) { return x / A; }),
-      h: Sm.map(function (x, i) { return (A * x - B * S1[i]) / D; }),
-      var2: function (m) { return (A * m * m - 2 * B * m + C) / D; },
-      lambda: function (m) { return 2 * (A * m - B) / D; },
-      gamma: function (m) { return 2 * (C - B * m) / D; },
-      w: function (m) { const a = (A * m - B) / D, b = (C - B * m) / D; return Sm.map(function (x, i) { return a * x + b * S1[i]; }); }
-    };
+    const mmin = Math.min.apply(null, mu), mmax = Math.max.apply(null, mu);
+    if (mmax - mmin < 1e-9) return { ok: false, reason: 'means', S: S };
+    const blocks = [];
+    subsets(n).forEach(function (idx) { const b = blockOf(S, mu, idx); if (b) blocks.push(b); });
+    const model = { ok: true, n: n, S: S, R: R, mu: mu, blocks: blocks, mmin: mmin, mmax: mmax };
+    model.solve = function (m) { return solveAt(model, m); };
+    model.var2 = function (m) { const s = solveAt(model, m); return s ? s.v : NaN; };
+    model.w = function (m) { const s = solveAt(model, m); return s ? s.w : null; };
+    model.detail = function (m) { return detail(model, m); };
+    model.gmv = gmvLO(model);
+    model.breaks = breakpoints(model);
     return model;
   }
-  function quad(S, w) { return dot(w, matVec(S, w)); }
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   // random long-only portfolios (uniform on the simplex)
   function cloud(mu, S, N, seed) {
@@ -347,7 +441,7 @@ const Core = (function () {
     }
     $('n2').setAttribute('aria-pressed', String(n === 2));
     $('n3').setAttribute('aria-pressed', String(n === 3));
-    $('cloudRow').lastChild.textContent = n === 2 ? ' Highlight long-only mixes (0 ≤ w ≤ 1)' : ' Show random long-only portfolios';
+    $('cloudRow').hidden = (n === 2);
   }
 
   function setN(n) {
@@ -370,17 +464,14 @@ const Core = (function () {
     if (!M.ok) {
       var t = { sd: 'Each standard deviation must be positive.',
         pd: 'These correlations cannot all hold together (the covariance matrix is not positive definite). Lower one of them.',
-        means: 'All expected returns are equal, so every target return is the same problem and there is no frontier. Make at least two expected returns different.' }[M.reason];
+        means: 'All expected returns are equal, so there is nothing to trade off and no frontier. Make at least two expected returns different.' }[M.reason];
       msg.innerHTML = '<div class="warn">' + t + '</div>';
       CL = [];
     } else {
       CL = S.n === 3 ? Core.cloud(mu, M.S, 2500, 20260219) : [];
-      var span = Math.max(Math.max.apply(null, mu) - Math.min.apply(null, mu), 0.01);
-      M.mlo = Math.min(M.mg, Math.min.apply(null, mu)) - 0.6 * span;
-      M.mhi = Math.max.apply(null, mu) + 0.6 * span;
       var sl = $('mSlider');
-      sl.min = (Math.floor(M.mlo * 1000) / 10).toFixed(1); sl.max = (Math.ceil(M.mhi * 1000) / 10).toFixed(1);
-      S.m = Math.min(Math.max(S.m, parseFloat(sl.min)), parseFloat(sl.max));
+      sl.min = String(+(M.mmin * 100).toFixed(6)); sl.max = String(+(M.mmax * 100).toFixed(6));
+      S.m = Math.min(Math.max(S.m, M.mmin * 100), M.mmax * 100);
     }
     draw();
   }
@@ -397,39 +488,41 @@ const Core = (function () {
     var el = $('kpis');
     if (!M.ok) { el.innerHTML = ''; return; }
     var m = S.m / 100, w = M.w(m), sp = Math.sqrt(M.var2(m));
-    var chips = w.map(function (x, i) { return '<span class="chip' + (x < -1e-9 ? ' neg' : '') + '"><span class="sw" style="background:' + ASSET_COLORS[i] + '"></span>' + S.names[i] + ' ' + pct(x, 1) + (x < -1e-9 ? ' (short)' : '') + '</span>'; }).join('');
+    var chips = w.map(function (x, i) { return '<span class="chip"><span class="sw" style="background:' + ASSET_COLORS[i] + '"></span>' + S.names[i] + ' ' + pct(x, 1) + '</span>'; }).join('');
     el.innerHTML =
       '<div class="kpi sel"><div class="lab">TARGET RETURN <i>m</i></div><div class="val">' + pct(m) + '</div><div class="sm">selected portfolio P</div></div>' +
       '<div class="kpi sel"><div class="lab">LOWEST RISK σ<sub>P</sub> AT THAT RETURN</div><div class="val">' + pct(sp) + '</div><div class="sm">variance ' + fmt(sp * sp, 5) + '</div></div>' +
-      '<div class="kpi gm"><div class="lab">GLOBAL MIN-VARIANCE</div><div class="val">σ ' + pct(Math.sqrt(M.vg)) + '</div><div class="sm">return ' + pct(M.mg) + '</div></div>' +
-      '<div class="kpi"><div class="lab">WEIGHTS OF P</div><div class="chips">' + chips + '</div></div>';
+      '<div class="kpi gm"><div class="lab">GLOBAL MIN-VARIANCE</div><div class="val">σ ' + pct(Math.sqrt(M.gmv.v)) + '</div><div class="sm">return ' + pct(M.gmv.m) + '</div></div>' +
+      '<div class="kpi"><div class="lab">WEIGHTS OF P (SUM = 100%)</div><div class="chips">' + chips + '</div></div>';
   }
 
   function drawLegend() {
     var h = '<span><i class="lg-eff"></i>efficient frontier</span><span><i class="lg-ineff"></i>inefficient branch</span><span><i class="lg-gmv"></i>global minimum variance</span><span><i class="lg-sel"></i>selected portfolio P</span>';
-    if (S.cloud) h += S.n === 3 ? '<span><i class="lg-cloud"></i>random long-only portfolios</span>' : '<span><i class="lg-long"></i>long-only mixes</span>';
+    if (M.ok && M.breaks.length) h += '<span><i class="lg-corner"></i>corner portfolio (an asset enters or leaves)</span>';
+    if (S.cloud && S.n === 3) h += '<span><i class="lg-cloud"></i>random long-only portfolios</span>';
     $('legend').innerHTML = h;
     $('wlegend').innerHTML = S.names.map(function (nm, i) { return '<span><span class="sw" style="background:' + ASSET_COLORS[i] + '"></span>weight in asset ' + nm + '</span>'; }).join('');
   }
 
   function drawFrontier() {
     var svg = $('chart'), W = 680, H = 440, ML = 62, MR = 24, MT = 18, MB = 52;
-    if (!M.ok) { svg.innerHTML = '<text x="' + W / 2 + '" y="' + H / 2 + '" text-anchor="middle" class="ax-title">Fix the inputs on the left to see the frontier.</text>'; view = null; return; }
-    var axis = S.axis, n = S.n, mu = S.mu.map(function (x) { return x / 100; });
+    if (!M.ok) { svg.innerHTML = '<text x="' + W / 2 + '" y="' + H / 2 + '" text-anchor="middle" class="ax-title">Fix the inputs to see the frontier.</text>'; view = null; return; }
+    var axis = S.axis;
     var X = axis === 'sd' ? function (v2) { return Math.sqrt(Math.max(v2, 0)) * 100; } : function (v2) { return v2 * 1e4; };
     var xTitle = axis === 'sd' ? 'Standard deviation σ (%)' : 'Variance σ² (%²)';
-    var N = 260, eff = [], ineff = [], xmax = 0, i;
+    var N = 260, eff = [], ineff = [], xmax = 0, i, mg = M.gmv.m;
     for (i = 0; i <= N; i++) {
-      var m = M.mlo + (M.mhi - M.mlo) * i / N, p = [X(M.var2(m)), m * 100];
+      var m = M.mmin + (M.mmax - M.mmin) * i / N, p = [X(M.var2(m)), m * 100];
       xmax = Math.max(xmax, p[0]);
-      if (m < M.mg) ineff.push(p); else eff.push(p);
+      if (m < mg - 1e-12) ineff.push(p); else eff.push(p);
     }
-    var gp = [X(M.vg), M.mg * 100];
+    var gp = [X(M.gmv.v), mg * 100];
     ineff.push(gp); eff.unshift(gp);
     var pts = S.sd.map(function (s, k) { return [X(Math.pow(s / 100, 2)), S.mu[k]]; });
     pts.forEach(function (p) { xmax = Math.max(xmax, p[0]); });
     CL.forEach(function (c) { xmax = Math.max(xmax, X(c[0])); });
-    var x0 = 0, x1 = xmax * 1.05, y0 = M.mlo * 100, y1 = M.mhi * 100;
+    var pad = Math.max(0.08 * (M.mmax - M.mmin), 0.003);
+    var x0 = 0, x1 = xmax * 1.06, y0 = (M.mmin - pad) * 100, y1 = (M.mmax + pad) * 100;
     var sx = function (v) { return ML + (v - x0) / (x1 - x0) * (W - ML - MR); };
     var sy = function (v) { return H - MB - (v - y0) / (y1 - y0) * (H - MT - MB); };
     view = { y0: y0, y1: y1, H: H, MT: MT, MB: MB };
@@ -440,15 +533,14 @@ const Core = (function () {
     out += '<text class="ax-title" x="' + (ML + (W - ML - MR) / 2) + '" y="' + (H - 10) + '" text-anchor="middle">' + xTitle + '</text>';
     out += '<text class="ax-title" transform="rotate(-90 16 ' + (MT + (H - MT - MB) / 2) + ')" x="16" y="' + (MT + (H - MT - MB) / 2) + '" text-anchor="middle">Expected return m (%)</text>';
     var path = function (a) { return a.map(function (p, k) { return (k ? 'L' : 'M') + sx(p[0]).toFixed(1) + ' ' + sy(p[1]).toFixed(1); }).join(''); };
-    if (S.cloud && n === 3) {
+    if (S.cloud && S.n === 3) {
       out += '<path class="cloud" d="' + CL.map(function (c) { return 'M' + sx(X(c[0])).toFixed(1) + ' ' + sy(c[1] * 100).toFixed(1) + 'h0'; }).join('') + '"/>';
     }
-    if (S.cloud && n === 2) {
-      var seg = [], s1 = S.sd[0] / 100, s2 = S.sd[1] / 100, r = S.rho[0];
-      for (i = 0; i <= 60; i++) { var wa = i / 60, v2 = wa * wa * s1 * s1 + (1 - wa) * (1 - wa) * s2 * s2 + 2 * wa * (1 - wa) * r * s1 * s2; seg.push([X(v2), (wa * mu[0] + (1 - wa) * mu[1]) * 100]); }
-      out += '<path class="longonly" d="' + path(seg) + '"/>';
-    }
     out += '<path class="ineff" d="' + path(ineff) + '"/><path class="eff" d="' + path(eff) + '"/>';
+    // corner portfolios
+    M.breaks.forEach(function (mb) {
+      out += '<circle class="corner" cx="' + sx(X(M.var2(mb))).toFixed(1) + '" cy="' + sy(mb * 100).toFixed(1) + '" r="5"/>';
+    });
     // selected portfolio guides
     var m0 = S.m, pv = X(M.var2(m0 / 100)), px = sx(pv), py = sy(m0);
     out += '<path class="guide" d="M' + ML + ' ' + py.toFixed(1) + 'H' + px.toFixed(1) + 'V' + (H - MB) + '"/>';
@@ -471,32 +563,35 @@ const Core = (function () {
   function drawWeights() {
     var svg = $('wchart'), W = 680, H = 300, ML = 62, MR = 46, MT = 14, MB = 46;
     if (!M.ok) { svg.innerHTML = ''; return; }
-    var N = 80, i, k, lines = S.names.map(function () { return []; }), lo = 0, hi = 0;
+    var N = 240, i, k, lines = S.names.map(function () { return []; });
     for (i = 0; i <= N; i++) {
-      var m = M.mlo + (M.mhi - M.mlo) * i / N, w = M.w(m);
-      for (k = 0; k < S.n; k++) { lines[k].push([m * 100, w[k] * 100]); lo = Math.min(lo, w[k] * 100); hi = Math.max(hi, w[k] * 100); }
+      var m = M.mmin + (M.mmax - M.mmin) * i / N, w = M.w(m);
+      for (k = 0; k < S.n; k++) lines[k].push([m * 100, w[k] * 100]);
     }
-    var pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
-    var x0 = M.mlo * 100, x1 = M.mhi * 100;
+    var x0 = M.mmin * 100, x1 = M.mmax * 100, lo = -4, hi = 104;
     var sx = function (v) { return ML + (v - x0) / (x1 - x0) * (W - ML - MR); };
     var sy = function (v) { return H - MB - (v - lo) / (hi - lo) * (H - MT - MB); };
-    var out = '', tx = niceTicks(x0, x1, 7), ty = niceTicks(lo, hi, 6);
-    out += '<rect x="' + ML + '" y="' + sy(0).toFixed(1) + '" width="' + (W - ML - MR) + '" height="' + (H - MB - sy(0)).toFixed(1) + '" style="fill:var(--short)"/>';
-    out += '<text x="' + (ML + (W - ML - MR) / 2) + '" y="' + (H - MB - 8) + '" text-anchor="middle" style="font-size:11.5px">short position (negative weight)</text>';
+    var out = '', tx = niceTicks(x0, x1, 7);
     tx.ticks.forEach(function (v) { out += '<line class="grid" x1="' + sx(v) + '" y1="' + MT + '" x2="' + sx(v) + '" y2="' + (H - MB) + '"/><text x="' + sx(v) + '" y="' + (H - MB + 18) + '" text-anchor="middle">' + fmt(v, tx.dec) + '</text>'; });
-    ty.ticks.forEach(function (v) { out += '<line class="grid" x1="' + ML + '" y1="' + sy(v) + '" x2="' + (W - MR) + '" y2="' + sy(v) + '"/><text x="' + (ML - 8) + '" y="' + (sy(v) + 4) + '" text-anchor="end">' + fmt(v, ty.dec) + '</text>'; });
+    [0, 25, 50, 75, 100].forEach(function (v) { out += '<line class="grid" x1="' + ML + '" y1="' + sy(v) + '" x2="' + (W - MR) + '" y2="' + sy(v) + '"/><text x="' + (ML - 8) + '" y="' + (sy(v) + 4) + '" text-anchor="end">' + v + '</text>'; });
     out += '<line class="axis" x1="' + ML + '" y1="' + sy(0).toFixed(1) + '" x2="' + (W - MR) + '" y2="' + sy(0).toFixed(1) + '"/>';
     out += '<line class="axis" x1="' + ML + '" y1="' + MT + '" x2="' + ML + '" y2="' + (H - MB) + '"/>';
     out += '<text class="ax-title" x="' + (ML + (W - ML - MR) / 2) + '" y="' + (H - 8) + '" text-anchor="middle">Target return m (%)</text>';
     out += '<text class="ax-title" transform="rotate(-90 16 ' + (MT + (H - MT - MB) / 2) + ')" x="16" y="' + (MT + (H - MT - MB) / 2) + '" text-anchor="middle">Weight (%)</text>';
-    // GMV and selected m
-    out += '<line x1="' + sx(M.mg * 100) + '" y1="' + MT + '" x2="' + sx(M.mg * 100) + '" y2="' + (H - MB) + '" style="stroke:var(--gmv);stroke-width:1.2;stroke-dasharray:2 4"/>';
-    out += '<text class="halo" x="' + (sx(M.mg * 100) + 5) + '" y="' + (MT + 12) + '" style="fill:var(--fg)">GMV</text>';
+    // corner portfolios, GMV, selected m
+    M.breaks.forEach(function (mb) {
+      out += '<line x1="' + sx(mb * 100) + '" y1="' + MT + '" x2="' + sx(mb * 100) + '" y2="' + (H - MB) + '" style="stroke:var(--curve);stroke-width:1.2;stroke-dasharray:1 4"/>';
+      out += '<text class="halo" x="' + (sx(mb * 100) + 4) + '" y="' + (MT + 12) + '" style="fill:var(--curve)">corner</text>';
+    });
+    if (M.gmv.m > M.mmin + 1e-9 && M.gmv.m < M.mmax - 1e-9) {
+      out += '<line x1="' + sx(M.gmv.m * 100) + '" y1="' + MT + '" x2="' + sx(M.gmv.m * 100) + '" y2="' + (H - MB) + '" style="stroke:var(--gmv);stroke-width:1.2;stroke-dasharray:2 4"/>';
+      out += '<text class="halo" x="' + (sx(M.gmv.m * 100) + 4) + '" y="' + (H - MB - 8) + '" style="fill:var(--fg)">GMV</text>';
+    }
     out += '<line class="guide" x1="' + sx(S.m) + '" y1="' + MT + '" x2="' + sx(S.m) + '" y2="' + (H - MB) + '"/>';
     var wsel = M.w(S.m / 100);
     for (k = 0; k < S.n; k++) {
       var d = lines[k].map(function (p, j) { return (j ? 'L' : 'M') + sx(p[0]).toFixed(1) + ' ' + sy(p[1]).toFixed(1); }).join('');
-      out += '<path d="' + d + '" style="fill:none;stroke:' + ASSET_COLORS[k] + ';stroke-width:2.6"/>';
+      out += '<path d="' + d + '" style="fill:none;stroke:' + ASSET_COLORS[k] + ';stroke-width:2.6;stroke-linejoin:round"/>';
       var last = lines[k][N];
       out += '<text class="halo" x="' + (sx(last[0]) + 6) + '" y="' + (sy(last[1]) + 4).toFixed(1) + '" style="fill:var(--fg);font-weight:600">' + S.names[k] + '</text>';
       out += '<circle cx="' + sx(S.m).toFixed(1) + '" cy="' + sy(wsel[k] * 100).toFixed(1) + '" r="5" style="fill:' + ASSET_COLORS[k] + ';stroke:var(--surface);stroke-width:2"/>';
@@ -506,67 +601,89 @@ const Core = (function () {
 
   /* ---------- derivation ---------- */
   var V = function (t) { return '<b class="v">' + t + '</b>'; };
-  var T = '<sup>T</sup>', INV = '<sup>−1</sup>';
+  var T = '<sup>T</sup>', INV = '<sup>−1</sup>', SS = '<sub>S</sub>';
   function frac(a, b) { return '<span class="frac"><span>' + a + '</span><span>' + b + '</span></span>'; }
   function vec(a, d) { return '<span class="vec" style="grid-template-columns:auto">' + a.map(function (x) { return '<span>' + fmt(x, d === undefined ? 4 : d) + '</span>'; }).join('') + '</span>'; }
   function mat(Mx, d) { var n = Mx.length; return '<span class="vec" style="grid-template-columns:repeat(' + n + ',auto)">' + [].concat.apply([], Mx).map(function (x) { return '<span>' + fmt(x, d === undefined ? 4 : d) + '</span>'; }).join('') + '</span>'; }
   function ln(name, body) { return '<div class="ln"><span class="nm">' + name + '</span>' + body + '</div>'; }
   function live(inner) { return '<div class="live"><div class="lt">With your numbers</div>' + inner + '</div>'; }
+  function names(idx) { return '{' + idx.map(function (i) { return S.names[i]; }).join(', ') + '}'; }
+  function cornerList() { return M.breaks.length ? M.breaks.map(function (b) { return pct(b); }).join(', ') : 'none'; }
 
   function stepHTML(k) {
-    var m = S.m / 100, w = M.w(m), lam = M.lambda(m), gam = M.gamma(m), v = M.var2(m);
+    var m = S.m / 100, d = M.detail(m), w = d.w, v = d.v, b = d.block;
     var mu = S.mu.map(function (x) { return x / 100; });
-    var wmu = Core.dot(w, mu), wsum = w.reduce(function (a, b) { return a + b; }, 0);
-    var mM = '<i>m</i>';
+    var mM = '<i>m</i>', single = d.supp.length === 1;
+    var hasLG = b && !b.flat && d.lam !== null;
     if (k === 0) {
       return '<h3>1. The problem</h3>' +
-        '<p>For a target expected return <i>m</i>, find the fully invested portfolio with the smallest variance. Weights may be negative (short sales are allowed) and there is no risk-free asset.</p>' +
-        '<div class="eq"><span class="nb">min<sub>' + V('w') + '</sub> ' + V('w') + T + V('Σ') + V('w') + '</span><br><span class="nb">subject to ' + V('w') + T + V('μ') + ' = ' + mM + '</span> &nbsp;and&nbsp; <span class="nb">' + V('w') + T + V('1') + ' = 1</span></div>' +
-        '<p class="note">The first constraint fixes the expected return, the second makes the weights add to one. Σ<sub>ij</sub> = ρ<sub>ij</sub>σ<sub>i</sub>σ<sub>j</sub>.</p>' +
-        live(ln(V('μ') + ' =', vec(mu)) + ln(V('Σ') + ' =', mat(M.S)) + ln('Target', '<span class="math"><i>m</i> = ' + pct(m) + '</span>'));
+        '<p>For a target expected return <i>m</i>, find the portfolio with the smallest variance. The weights must add up to one and none of them can be negative: no short sales, and no risk-free asset.</p>' +
+        '<div class="eq"><span class="nb">min<sub>' + V('w') + '</sub> ' + V('w') + T + V('Σ') + V('w') + '</span><br><span class="nb">subject to ' + V('w') + T + V('μ') + ' = ' + mM + ',</span> &nbsp;<span class="nb">' + V('w') + T + V('1') + ' = 1,</span> &nbsp;<span class="nb">' + V('w') + ' ≥ ' + V('0') + '</span></div>' +
+        '<p class="note">The first two constraints fix the return and the budget. The third, <i>w</i><sub><i>i</i></sub> ≥ 0 for every asset, is what makes this a long-only frontier. Σ<sub>ij</sub> = ρ<sub>ij</sub>σ<sub>i</sub>σ<sub>j</sub>.</p>' +
+        live(ln(V('μ') + ' =', vec(mu)) + ln(V('Σ') + ' =', mat(M.S)) + ln('Target', '<span class="math"><i>m</i> = ' + pct(m) + '</span>') +
+          ln('Range', '<span>Only returns between the lowest and the highest expected return can be reached without short sales: ' + pct(M.mmin) + ' to ' + pct(M.mmax) + '.</span>'));
     }
     if (k === 1) {
       return '<h3>2. The Lagrangian</h3>' +
-        '<p>Attach one multiplier to each constraint: <i>λ</i> to the return target and <i>γ</i> to full investment.</p>' +
-        '<div class="eq"><span class="nb"><i>L</i>(' + V('w') + ', <i>λ</i>, <i>γ</i>) = ' + V('w') + T + V('Σ') + V('w') + '</span> <span class="nb">− <i>λ</i> (' + V('w') + T + V('μ') + ' − ' + mM + ')</span> <span class="nb">− <i>γ</i> (' + V('w') + T + V('1') + ' − 1)</span></div>' +
-        '<p class="note">At the optimum both brackets are zero, so the constraints hold. The multipliers measure how much the minimum variance would change if a constraint were loosened.</p>';
+        '<p>Attach one multiplier to each constraint: <i>λ</i> to the return target, <i>γ</i> to full investment, and <i>ν</i><sub><i>i</i></sub> ≥ 0 to each non-negativity constraint (Kuhn–Tucker multipliers).</p>' +
+        '<div class="eq"><span class="nb"><i>L</i> = ' + V('w') + T + V('Σ') + V('w') + '</span> <span class="nb">− <i>λ</i> (' + V('w') + T + V('μ') + ' − ' + mM + ')</span> <span class="nb">− <i>γ</i> (' + V('w') + T + V('1') + ' − 1)</span> <span class="nb">− ' + V('ν') + T + V('w') + '</span></div>' +
+        '<p class="note">A positive <i>ν</i><sub><i>i</i></sub> means the constraint <i>w</i><sub><i>i</i></sub> ≥ 0 is binding: the optimum would like a negative weight in asset <i>i</i> but is not allowed to have one.</p>';
     }
     if (k === 2) {
+      var lv = '';
+      if (b && b.k >= 1) lv = ln(V('Σ') + SS + INV + V('μ') + SS + ' =', vec(b.Sm)) + ln(V('Σ') + SS + INV + V('1') + SS + ' =', vec(b.S1));
       return '<h3>3. First-order conditions</h3>' +
-        '<p>Set the derivative with respect to the weights to zero and solve for <b class="v">w</b>.</p>' +
-        '<div class="eq"><span class="nb">' + frac('∂<i>L</i>', '∂' + V('w')) + ' = 2' + V('Σ') + V('w') + ' − <i>λ</i>' + V('μ') + ' − <i>γ</i>' + V('1') + ' = ' + V('0') + '</span><br><span class="nb">⟹ &nbsp;' + V('w') + ' = ' + frac('1', '2') + V('Σ') + INV + '(<i>λ</i>' + V('μ') + ' + <i>γ</i>' + V('1') + ')</span></div>' +
-        '<p>The optimal weights are a mix of two fixed vectors, Σ<sup>−1</sup>μ and Σ<sup>−1</sup>1. Only the two numbers <i>λ</i> and <i>γ</i> still depend on the target <i>m</i>.</p>' +
-        live(ln(V('Σ') + INV + V('μ') + ' =', vec(M.Sm)) + ln(V('Σ') + INV + V('1') + ' =', vec(M.S1)));
+        '<p>Set the derivative with respect to the weights to zero, and add the complementary-slackness condition for the sign constraints:</p>' +
+        '<div class="eq"><span class="nb">2' + V('Σ') + V('w') + ' − <i>λ</i>' + V('μ') + ' − <i>γ</i>' + V('1') + ' − ' + V('ν') + ' = ' + V('0') + '</span><br><span class="nb"><i>ν</i><sub><i>i</i></sub> <i>w</i><sub><i>i</i></sub> = 0 for every asset <i>i</i></span></div>' +
+        '<p>So each asset is in one of two states. Either <i>w</i><sub><i>i</i></sub> &gt; 0 and <i>ν</i><sub><i>i</i></sub> = 0 (the asset is held), or <i>w</i><sub><i>i</i></sub> = 0 and <i>ν</i><sub><i>i</i></sub> ≥ 0 (the asset is left out). Let S be the set of assets held. Inside S the condition is the same as without sign constraints:</p>' +
+        '<div class="eq">' + V('w') + SS + ' = ' + frac('1', '2') + V('Σ') + SS + INV + '(<i>λ</i>' + V('μ') + SS + ' + <i>γ</i>' + V('1') + SS + ')</div>' +
+        '<p class="note">Which assets belong to S depends on the target <i>m</i>. That is why the frontier is made of pieces.</p>' +
+        live(ln('Assets held at <i>m</i> = ' + pct(m), '<span class="math">S = ' + names(d.supp) + '</span>') + lv);
     }
     if (k === 3) {
-      var wTxt = w.map(function (x, i) { return '<span class="chip' + (x < -1e-9 ? ' neg' : '') + '">w<sub>' + S.names[i] + '</sub> = ' + pct(x, 2) + '</span>'; }).join('');
-      return '<h3>4. Solve for <i>λ</i> and <i>γ</i></h3>' +
-        '<p>Put the weights from step 3 into the two constraints. With <i>A</i> = 1<sup>T</sup>Σ<sup>−1</sup>1, <i>B</i> = 1<sup>T</sup>Σ<sup>−1</sup>μ and <i>C</i> = μ<sup>T</sup>Σ<sup>−1</sup>μ you get two linear equations in <i>λ</i> and <i>γ</i>:</p>' +
-        '<div class="eq">' + frac('1', '2') + '(<i>Bλ</i> + <i>Aγ</i>) = 1<span class="lbl">full investment</span><br>' + frac('1', '2') + '(<i>Cλ</i> + <i>Bγ</i>) = ' + mM + '<span class="lbl">target return</span></div>' +
-        '<div class="eq"><span class="nb"><i>λ</i> = ' + frac('2(<i>Am</i> − <i>B</i>)', '<i>D</i>') + '</span> &nbsp;&nbsp; <span class="nb"><i>γ</i> = ' + frac('2(<i>C</i> − <i>Bm</i>)', '<i>D</i>') + '</span><br><span class="nb">with <i>D</i> = <i>AC</i> − <i>B</i><sup>2</sup></span></div>' +
-        live(ln('<i>A</i>, <i>B</i>, <i>C</i>, <i>D</i>', '<span>' + fmt(M.A, 3) + '</span><span>' + fmt(M.B, 3) + '</span><span>' + fmt(M.C, 3) + '</span><span>' + fmt(M.D, 3) + '</span>') +
-          ln('<i>λ</i>, <i>γ</i> at <i>m</i> = ' + pct(m), '<span>' + fmt(lam, 3) + '</span><span>' + fmt(gam, 3) + '</span>') +
+      var chk = '';
+      if (hasLG) {
+        var wTxt = S.names.map(function (nm, i) { return '<span class="chip">w<sub>' + nm + '</sub> = ' + pct(w[i], 2) + '</span>'; }).join('');
+        var nuTxt = d.nu.length ? d.nu.map(function (x) { return '<span class="ok"><i>ν</i><sub>' + S.names[x.j] + '</sub> = ' + fmt(x.v, 4) + ' ≥ 0</span>'; }).join('') : '<span class="ok">no asset is left out, so there is no <i>ν</i> to check</span>';
+        chk = ln('<i>A</i><sub>S</sub>, <i>B</i><sub>S</sub>, <i>C</i><sub>S</sub>, <i>D</i><sub>S</sub>', '<span>' + fmt(b.A, 3) + '</span><span>' + fmt(b.B, 3) + '</span><span>' + fmt(b.C, 3) + '</span><span>' + fmt(b.D, 3) + '</span>') +
+          ln('<i>λ</i>, <i>γ</i> at <i>m</i> = ' + pct(m), '<span>' + fmt(d.lam, 3) + '</span><span>' + fmt(d.gam, 3) + '</span>') +
           ln('Weights of P', wTxt) +
-          ln('Check', '<span class="ok">Σw<sub>i</sub> = ' + fmt(wsum, 6) + '</span><span class="ok">w<sup>T</sup>μ = ' + pct(wmu, 4) + ' = m</span>'));
+          ln('Checks', '<span class="ok">Σw<sub>i</sub> = ' + fmt(w.reduce(function (a, c) { return a + c; }, 0), 6) + '</span><span class="ok">w<sup>T</sup>μ = ' + pct(Core.dot(w, mu), 4) + ' = m</span><span class="ok">all weights ≥ 0</span>') +
+          ln('Left-out assets', nuTxt);
+      } else if (single) {
+        chk = ln('Weights of P', '<span class="chip">100% in asset ' + S.names[d.supp[0]] + '</span>') +
+          ln('Why', '<span>At <i>m</i> = ' + pct(mu[d.supp[0]]) + ' only asset ' + S.names[d.supp[0]] + ' can deliver the target without short sales, so there is nothing to solve. This is an end point of the frontier.</span>');
+      } else {
+        chk = ln('Weights of P', d.supp.map(function (i) { return '<span class="chip">w<sub>' + S.names[i] + '</sub> = ' + pct(w[i], 2) + '</span>'; }).join(''));
+      }
+      return '<h3>4. Solve for <i>λ</i> and <i>γ</i></h3>' +
+        '<p>Put <b class="v">w</b><sub>S</sub> from step 3 into the two constraints. With <i>A</i><sub>S</sub> = 1<sup>T</sup>Σ<sub>S</sub><sup>−1</sup>1, <i>B</i><sub>S</sub> = 1<sup>T</sup>Σ<sub>S</sub><sup>−1</sup>μ, <i>C</i><sub>S</sub> = μ<sup>T</sup>Σ<sub>S</sub><sup>−1</sup>μ (all restricted to the assets in S) you get two linear equations in <i>λ</i> and <i>γ</i>:</p>' +
+        '<div class="eq">' + frac('1', '2') + '(<i>B</i><sub>S</sub><i>λ</i> + <i>A</i><sub>S</sub><i>γ</i>) = 1<span class="lbl">full investment</span><br>' + frac('1', '2') + '(<i>C</i><sub>S</sub><i>λ</i> + <i>B</i><sub>S</sub><i>γ</i>) = ' + mM + '<span class="lbl">target return</span></div>' +
+        '<div class="eq"><span class="nb"><i>λ</i> = ' + frac('2(<i>A</i><sub>S</sub><i>m</i> − <i>B</i><sub>S</sub>)', '<i>D</i><sub>S</sub>') + '</span> &nbsp;&nbsp; <span class="nb"><i>γ</i> = ' + frac('2(<i>C</i><sub>S</sub> − <i>B</i><sub>S</sub><i>m</i>)', '<i>D</i><sub>S</sub>') + '</span><br><span class="nb">with <i>D</i><sub>S</sub> = <i>A</i><sub>S</sub><i>C</i><sub>S</sub> − <i>B</i><sub>S</sub><sup>2</sup></span></div>' +
+        '<p class="note">The guess S is right when the weights come out positive and every left-out asset has <i>ν</i> ≥ 0. The dashboard tries every possible S and keeps the valid one with the lowest variance.</p>' +
+        live(chk);
     }
     if (k === 4) {
+      var q2 = hasLG ? 2 * b.B / b.D : 0;
       var exNote = (S.n === 2 && S.mu[0] === 8 && S.mu[1] === 12 && S.sd[0] === 10 && S.sd[1] === 20 && Math.abs(S.rho[0] - 0.2) < 1e-9)
-        ? '<p class="note">With the exercise values this is the quadratic 26.25 <i>m</i><sup>2</sup> − 4.5 <i>m</i> + 0.202 from the exercise sheet.</p>' : '';
-      var q2 = 2 * M.B / M.D;
+        ? '<p class="note">With the exercise values this is the quadratic 26.25 <i>m</i><sup>2</sup> − 4.5 <i>m</i> + 0.202 from the exercise sheet. Without short sales it holds for 8% ≤ <i>m</i> ≤ 12%.</p>' : '';
+      var coef = hasLG
+        ? ln('σ<sup>2</sup>(<i>m</i>) on this piece', '<span class="math">= ' + fmt(b.A / b.D, 3) + ' <i>m</i><sup>2</sup> ' + (q2 >= 0 ? '−' : '+') + ' ' + fmt(Math.abs(q2), 3) + ' <i>m</i> + ' + fmt(b.C / b.D, 4) + '</span>')
+        : ln('This piece', '<span>' + (single ? 'a single point: all weight in asset ' + S.names[d.supp[0]] : 'no quadratic needed here') + '</span>');
       return '<h3>5. The frontier formula</h3>' +
-        '<p>Because Σ<b class="v">w</b> = ½(<i>λ</i>μ + <i>γ</i>1), the variance collapses to a single expression in the multipliers, and then in <i>m</i>:</p>' +
-        '<div class="eq"><span class="nb">σ<sup>2</sup>(<i>m</i>) = ' + V('w') + T + V('Σ') + V('w') + ' = ' + frac('1', '2') + '(<i>λm</i> + <i>γ</i>)</span><br><span class="nb">= ' + frac('<i>A</i><i>m</i><sup>2</sup> − 2<i>Bm</i> + <i>C</i>', '<i>D</i>') + '</span> &nbsp;=&nbsp; <span class="nb">' + frac('1', '<i>A</i>') + ' + ' + frac('<i>A</i>(<i>m</i> − <i>B</i>/<i>A</i>)<sup>2</sup>', '<i>D</i>') + '</span></div>' +
-        '<p>This is a parabola in the (σ², <i>m</i>) plane and a hyperbola in the (σ, <i>m</i>) plane. Toggle the axis above the chart to see both.</p>' + exNote +
-        live(ln('σ<sup>2</sup>(<i>m</i>)', '<span class="math">= ' + fmt(M.A / M.D, 3) + ' <i>m</i><sup>2</sup> ' + (q2 >= 0 ? '−' : '+') + ' ' + fmt(Math.abs(q2), 3) + ' <i>m</i> + ' + fmt(M.C / M.D, 4) + '</span>') +
-          ln('At <i>m</i> = ' + pct(m), '<span>σ<sup>2</sup> = ' + fmt(v, 5) + '</span><span>σ<sub>P</sub> = ' + pct(Math.sqrt(v)) + '</span><span class="ok">½(λm + γ) = ' + fmt(0.5 * (lam * m + gam), 5) + '</span>'));
+        '<p>Because 2Σ<b class="v">w</b> = <i>λ</i>μ + <i>γ</i>1 + ν and <i>ν</i><sub><i>i</i></sub><i>w</i><sub><i>i</i></sub> = 0, the variance collapses to a single expression in the multipliers, and then in <i>m</i>:</p>' +
+        '<div class="eq"><span class="nb">σ<sup>2</sup>(<i>m</i>) = ' + V('w') + T + V('Σ') + V('w') + ' = ' + frac('1', '2') + '(<i>λm</i> + <i>γ</i>)</span><br><span class="nb">= ' + frac('<i>A</i><sub>S</sub><i>m</i><sup>2</sup> − 2<i>B</i><sub>S</sub><i>m</i> + <i>C</i><sub>S</sub>', '<i>D</i><sub>S</sub>') + '</span></div>' +
+        '<p>This is a parabola in the (σ², <i>m</i>) plane and a hyperbola in the (σ, <i>m</i>) plane, but only for the stretch of <i>m</i> where the set S stays the same. When an asset enters or leaves, the formula switches to the new S. The two pieces meet at a <b>corner portfolio</b>.</p>' + exNote +
+        live(coef + ln('At <i>m</i> = ' + pct(m), '<span>σ<sup>2</sup> = ' + fmt(v, 5) + '</span><span>σ<sub>P</sub> = ' + pct(Math.sqrt(v)) + '</span>') +
+          ln('Corner portfolios at <i>m</i> =', '<span>' + cornerList() + '</span>'));
     }
-    var hTxt = M.h.map(function (x, i) { return '<span>h<sub>' + S.names[i] + '</sub> = ' + fmt(x, 3) + '</span>'; }).join('');
+    var corners = M.breaks.length
+      ? '<li>The weights are straight lines in <i>m</i> between two corners, so two portfolios on the same piece generate the rest of it (two-fund separation inside a piece). At each corner (' + cornerList() + ') an asset enters or leaves and the slope changes.</li>'
+      : '<li>With these inputs the same assets are held at every target return, so the weights are straight lines in <i>m</i> from one end of the frontier to the other. With three assets you will see corners where an asset enters or leaves.</li>';
     return '<h3>6. Reading the frontier</h3>' +
-      '<ul style="margin:.4rem 0 .2rem;padding-left:1.2rem"><li>The curve is lowest where dσ²/d<i>m</i> = 0. That point is the <b>global minimum-variance portfolio</b>: <i>m</i><sub>g</sub> = <i>B</i>/<i>A</i>, σ<sub>g</sub><sup>2</sup> = 1/<i>A</i>, <b class="v">w</b><sub>g</sub> = Σ<sup>−1</sup>1/<i>A</i>.</li>' +
-      '<li>Above it, the curve is the <b>efficient frontier</b>: the highest return for each level of risk. Below it (dashed), every point has a twin with the same risk and a higher return.</li>' +
-      '<li>The weights are linear in <i>m</i>: <b class="v">w</b>(<i>m</i>) = <b class="v">w</b><sub>g</sub> + (<i>m</i> − <i>m</i><sub>g</sub>) <b class="v">h</b>, with <b class="v">h</b> = (<i>A</i>Σ<sup>−1</sup>μ − <i>B</i>Σ<sup>−1</sup>1)/<i>D</i>. Two frontier portfolios therefore generate the whole frontier.</li></ul>' +
-      live(ln('GMV', '<span><i>m</i><sub>g</sub> = ' + pct(M.mg) + '</span><span>σ<sub>g</sub> = ' + pct(Math.sqrt(M.vg)) + '</span>') +
-        ln(V('w') + '<sub>g</sub> =', vec(M.wg)) + ln(V('h') + ' =', '<span class="math">' + hTxt + '</span>'));
+      '<ul style="margin:.4rem 0 .2rem;padding-left:1.2rem"><li>The lowest point of the curve is the <b>global minimum-variance portfolio</b> for long-only investors: it minimises <b class="v">w</b><sup>T</sup>Σ<b class="v">w</b> subject to <b class="v">w</b><sup>T</sup>1 = 1 and <b class="v">w</b> ≥ 0.</li>' +
+      '<li>Above it, the curve is the <b>efficient frontier</b>: the highest return for each level of risk. It ends in the asset with the highest expected return, held at 100%. Below the minimum point (dashed) every portfolio has a twin with the same risk and a higher return.</li>' + corners + '</ul>' +
+      live(ln('GMV', '<span><i>m</i><sub>g</sub> = ' + pct(M.gmv.m) + '</span><span>σ<sub>g</sub> = ' + pct(Math.sqrt(M.gmv.v)) + '</span>') + ln(V('w') + '<sub>g</sub> =', vec(M.gmv.w)) + ln('Corner portfolios at <i>m</i> =', '<span>' + cornerList() + '</span>'));
   }
 
   function drawSteps() {
