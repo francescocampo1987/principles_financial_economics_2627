@@ -271,43 +271,51 @@ const Core = (function () {
     return { idx: idx, k: idx.length, Si: Si, Sm: Sm, S1: S1, A: A, B: B, C: C, D: D,
       flat: !(D > 1e-12 * Math.max(1, A * C)), wg: S1.map(function (x) { return x / A; }) };
   }
-  // Long-only minimum-variance portfolio for target return m: try every set of assets that could be held,
-  // solve the equality-constrained problem on that set, keep the candidates with no negative weight, take the lowest variance.
+  // Long-only minimum-variance portfolio for target return m, without inverting the covariance matrix.
+  // The two equality constraints leave at most one free direction d (n = 3) or none (n = 2), so the feasible
+  // portfolios are w0 + t d, a short segment of the simplex; the variance along it is a quadratic in t.
   function solveAt(model, m) {
-    const n = model.n;
-    let best = null;
+    const n = model.n, mu = model.mu, S = model.S;
     if (m < model.mmin - 1e-12 || m > model.mmax + 1e-12) return null;
-    for (let q = 0; q < model.blocks.length; q++) {
-      const b = model.blocks[q];
-      let ws;
-      if (b.flat) {
-        const mu0 = model.mu[b.idx[0]];
-        const same = b.idx.every(function (i) { return Math.abs(model.mu[i] - mu0) < 1e-12; });
-        if (!same || Math.abs(m - mu0) > 1e-10) continue;
-        ws = b.wg;
-      } else {
-        const a = (b.A * m - b.B) / b.D, c = (b.C - b.B * m) / b.D;
-        ws = b.Sm.map(function (x, i) { return a * x + c * b.S1[i]; });
-      }
-      if (ws.some(function (x) { return x < -1e-9; })) continue;
-      const w = new Array(n).fill(0);
-      b.idx.forEach(function (i, j) { w[i] = Math.max(ws[j], 0); });
-      const v = quad(model.S, w);
-      if (!best || v < best.v - 1e-15) best = { w: w, v: v };
+    // particular solution w0 = c1 * 1 + c2 * mu of  w'1 = 1,  w'mu = m
+    let sm = 0, smm = 0;
+    for (let i = 0; i < n; i++) { sm += mu[i]; smm += mu[i] * mu[i]; }
+    const det = n * smm - sm * sm;
+    const c1 = (smm - sm * m) / det, c2 = (n * m - sm) / det;
+    const w0 = mu.map(function (x) { return c1 + c2 * x; });
+    const d = n === 3 ? [mu[1] - mu[2], mu[2] - mu[0], mu[0] - mu[1]] : [0, 0];
+    let tlo = -Infinity, thi = Infinity;
+    for (let i = 0; i < n; i++) {
+      if (Math.abs(d[i]) < 1e-15) { if (w0[i] < -1e-9) return null; continue; }
+      const t = -w0[i] / d[i];
+      if (d[i] > 0) tlo = Math.max(tlo, t); else thi = Math.min(thi, t);
     }
-    return best;
+    let t = 0;
+    if (n === 3) {
+      if (tlo > thi + 1e-12) return null;
+      if (tlo > thi) tlo = thi = (tlo + thi) / 2;
+      const Sd = matVec(S, d), Sw = matVec(S, w0);
+      const qa = dot(d, Sd), qb = 2 * dot(d, Sw);
+      if (qa > 1e-18) t = Math.min(Math.max(-qb / (2 * qa), tlo), thi);
+      else t = qb > 0 ? tlo : thi;
+    } else if (w0.some(function (x) { return x < -1e-9; })) return null;
+    const w = w0.map(function (x, i) { return Math.max(x + t * d[i], 0); });
+    return { w: w, v: quad(S, w) };
   }
+  // global minimum-variance portfolio for long-only investors: the variance of the frontier is convex in m
   function gmvLO(model) {
-    const n = model.n;
-    let best = null;
-    model.blocks.forEach(function (b) {
-      if (b.wg.some(function (x) { return x < -1e-9; })) return;
-      const w = new Array(n).fill(0);
-      b.idx.forEach(function (i, j) { w[i] = Math.max(b.wg[j], 0); });
-      const v = quad(model.S, w);
-      if (!best || v < best.v - 1e-15) best = { w: w, v: v, m: dot(w, model.mu) };
-    });
-    return best;
+    let lo = model.mmin, hi = model.mmax;
+    const g = (Math.sqrt(5) - 1) / 2;
+    const f = function (m) { const s = solveAt(model, m); return s ? s.v : Infinity; };
+    let x1 = hi - g * (hi - lo), x2 = lo + g * (hi - lo), f1 = f(x1), f2 = f(x2);
+    for (let it = 0; it < 200 && hi - lo > 1e-14; it++) {
+      if (f1 <= f2) { hi = x2; x2 = x1; f2 = f1; x1 = hi - g * (hi - lo); f1 = f(x1); }
+      else { lo = x1; x1 = x2; f1 = f2; x2 = lo + g * (hi - lo); f2 = f(x2); }
+    }
+    let m = (lo + hi) / 2;
+    [model.mmin, model.mmax].forEach(function (e) { if (f(e) < f(m) - 1e-15) m = e; });
+    const s = solveAt(model, m);
+    return { w: s.w, v: s.v, m: dot(s.w, model.mu) };
   }
   function support(model, m) {
     const s = solveAt(model, m);
@@ -356,10 +364,12 @@ const Core = (function () {
     if (sd.some(function (s) { return !(s > 0); })) return { ok: false, reason: 'sd', S: S };
     const dR = n === 2 ? 1 - R[0][1] * R[0][1]
       : 1 + 2 * R[0][1] * R[0][2] * R[1][2] - R[0][1] * R[0][1] - R[0][2] * R[0][2] - R[1][2] * R[1][2];
-    if (!(dR > 1e-9)) return { ok: false, reason: 'pd', S: S };
+    const pairs = n === 2 ? [R[0][1]] : [R[0][1], R[0][2], R[1][2]];
+    if (!(dR > -1e-9) || pairs.some(function (r) { return Math.abs(r) > 1 + 1e-12; })) return { ok: false, reason: 'pd', S: S };
     const mmin = Math.min.apply(null, mu), mmax = Math.max.apply(null, mu);
     if (mmax - mmin < 1e-9) return { ok: false, reason: 'means', S: S };
     const blocks = [];
+    // blocks (with Sigma_S inverse) are only used to display the derivation; a singular Sigma_S simply has no block
     subsets(n).forEach(function (idx) { const b = blockOf(S, mu, idx); if (b) blocks.push(b); });
     const model = { ok: true, n: n, S: S, R: R, mu: mu, blocks: blocks, mmin: mmin, mmax: mmax };
     model.solve = function (m) { return solveAt(model, m); };
@@ -425,7 +435,7 @@ const Core = (function () {
     var r = '<p class="ctl-title">Correlation</p>';
     for (var k = 0; k < labels.length; k++) {
       r += '<div class="sl"><div class="row"><label for="rho' + k + '">' + labels[k] + '</label><output id="rhoOut' + k + '" for="rho' + k + '">' + fmt(S.rho[k], 2) + '</output></div>' +
-        '<input id="rho' + k + '" type="range" min="-0.99" max="0.99" step="0.01" value="' + S.rho[k] + '"></div>';
+        '<input id="rho' + k + '" type="range" min="-1" max="1" step="0.01" value="' + S.rho[k] + '"></div>';
     }
     $('rhos').innerHTML = r;
     for (var j = 0; j < n; j++) {
@@ -463,7 +473,7 @@ const Core = (function () {
     var msg = $('msg'); msg.innerHTML = '';
     if (!M.ok) {
       var t = { sd: 'Each standard deviation must be positive.',
-        pd: 'These correlations cannot all hold together (the covariance matrix is not positive definite). Lower one of them.',
+        pd: 'These correlations cannot all hold together. With three assets, two assets that are perfectly correlated (+1) must have the same correlation with the third, and for −1 the correlations with the third must be opposite. Change one of them.',
         means: 'All expected returns are equal, so there is nothing to trade off and no frontier. Make at least two expected returns different.' }[M.reason];
       msg.innerHTML = '<div class="warn">' + t + '</div>';
       CL = [];
@@ -549,7 +559,8 @@ const Core = (function () {
     out += '<text class="halo" x="' + (px + 6).toFixed(1) + '" y="' + (H - MB - 8) + '" style="fill:var(--sel)">' + sTxt + '</text>';
     // GMV
     out += '<rect class="gmvpt" x="' + (sx(gp[0]) - 5).toFixed(1) + '" y="' + (sy(gp[1]) - 5).toFixed(1) + '" width="10" height="10" transform="rotate(45 ' + sx(gp[0]).toFixed(1) + ' ' + sy(gp[1]).toFixed(1) + ')"/>';
-    out += '<text class="halo" x="' + (sx(gp[0]) - 10).toFixed(1) + '" y="' + (sy(gp[1]) + 18).toFixed(1) + '" text-anchor="end" style="fill:var(--fg)">GMV</text>';
+    var gAnch = sx(gp[0]) - ML < 46 ? 'start' : 'end', gDx = gAnch === 'start' ? 12 : -10;
+    out += '<text class="halo" x="' + (sx(gp[0]) + gDx).toFixed(1) + '" y="' + (sy(gp[1]) + 18).toFixed(1) + '" text-anchor="' + gAnch + '" style="fill:var(--fg)">GMV</text>';
     // assets
     pts.forEach(function (p, k) {
       out += '<circle class="asset" cx="' + sx(p[0]).toFixed(1) + '" cy="' + sy(p[1]).toFixed(1) + '" r="6.5" style="fill:' + ASSET_COLORS[k] + '"/><text class="halo" x="' + (sx(p[0]) + 10).toFixed(1) + '" y="' + (sy(p[1]) + 4).toFixed(1) + '" style="fill:var(--fg);font-weight:600;font-size:13px">' + S.names[k] + '</text>';
@@ -632,6 +643,7 @@ const Core = (function () {
     if (k === 2) {
       var lv = '';
       if (b && b.k >= 1) lv = ln(V('Σ') + SS + INV + V('μ') + SS + ' =', vec(b.Sm)) + ln(V('Σ') + SS + INV + V('1') + SS + ' =', vec(b.S1));
+      else if (d.supp.length >= 2) lv = ln('Note', '<span>The returns of these assets are perfectly correlated (or have equal means), so Σ<sub>S</sub> has no inverse and this formula cannot be evaluated. The weights are then fixed by the two constraints alone. See step 4.</span>');
       return '<h3>3. First-order conditions</h3>' +
         '<p>Set the derivative with respect to the weights to zero, and add the complementary-slackness condition for the sign constraints:</p>' +
         '<div class="eq"><span class="nb">2' + V('Σ') + V('w') + ' − <i>λ</i>' + V('μ') + ' − <i>γ</i>' + V('1') + ' − ' + V('ν') + ' = ' + V('0') + '</span><br><span class="nb"><i>ν</i><sub><i>i</i></sub> <i>w</i><sub><i>i</i></sub> = 0 for every asset <i>i</i></span></div>' +
@@ -654,7 +666,9 @@ const Core = (function () {
         chk = ln('Weights of P', '<span class="chip">100% in asset ' + S.names[d.supp[0]] + '</span>') +
           ln('Why', '<span>At <i>m</i> = ' + pct(mu[d.supp[0]]) + ' only asset ' + S.names[d.supp[0]] + ' can deliver the target without short sales, so there is nothing to solve. This is an end point of the frontier.</span>');
       } else {
-        chk = ln('Weights of P', d.supp.map(function (i) { return '<span class="chip">w<sub>' + S.names[i] + '</sub> = ' + pct(w[i], 2) + '</span>'; }).join(''));
+        chk = ln('Weights of P', S.names.map(function (nm, i) { return '<span class="chip">w<sub>' + nm + '</sub> = ' + pct(w[i], 2) + '</span>'; }).join('')) +
+          ln('Why no <i>λ</i>, <i>γ</i>', '<span>Σ<sub>S</sub> is singular, so <i>A</i><sub>S</sub>, <i>B</i><sub>S</sub>, <i>C</i><sub>S</sub>, <i>D</i><sub>S</sub> are not defined. With two assets the two constraints already fix the weights, and the variance is computed directly from them.</span>') +
+          ln('Checks', '<span class="ok">Σw<sub>i</sub> = ' + fmt(w.reduce(function (a, c) { return a + c; }, 0), 6) + '</span><span class="ok">w<sup>T</sup>μ = ' + pct(Core.dot(w, mu), 4) + ' = m</span><span class="ok">all weights ≥ 0</span>');
       }
       return '<h3>4. Solve for <i>λ</i> and <i>γ</i></h3>' +
         '<p>Put <b class="v">w</b><sub>S</sub> from step 3 into the two constraints. With <i>A</i><sub>S</sub> = 1<sup>T</sup>Σ<sub>S</sub><sup>−1</sup>1, <i>B</i><sub>S</sub> = 1<sup>T</sup>Σ<sub>S</sub><sup>−1</sup>μ, <i>C</i><sub>S</sub> = μ<sup>T</sup>Σ<sub>S</sub><sup>−1</sup>μ (all restricted to the assets in S) you get two linear equations in <i>λ</i> and <i>γ</i>:</p>' +
@@ -669,7 +683,12 @@ const Core = (function () {
         ? '<p class="note">With the exercise values this is the quadratic 26.25 <i>m</i><sup>2</sup> − 4.5 <i>m</i> + 0.202 from the exercise sheet. Without short sales it holds for 8% ≤ <i>m</i> ≤ 12%.</p>' : '';
       var coef = hasLG
         ? ln('σ<sup>2</sup>(<i>m</i>) on this piece', '<span class="math">= ' + fmt(b.A / b.D, 3) + ' <i>m</i><sup>2</sup> ' + (q2 >= 0 ? '−' : '+') + ' ' + fmt(Math.abs(q2), 3) + ' <i>m</i> + ' + fmt(b.C / b.D, 4) + '</span>')
-        : ln('This piece', '<span>' + (single ? 'a single point: all weight in asset ' + S.names[d.supp[0]] : 'no quadratic needed here') + '</span>');
+        : single ? ln('This piece', '<span>a single point: all weight in asset ' + S.names[d.supp[0]] + '</span>')
+        : (function () {
+            var hh = 1e-5 * (M.mmax - M.mmin), ma = Math.max(M.mmin, m - hh), mb = Math.min(M.mmax, m + hh);
+            var slope = (Math.sqrt(M.var2(mb)) - Math.sqrt(M.var2(ma))) / (mb - ma);
+            return ln('This piece', '<span>σ(<i>m</i>) is a straight line here (perfectly correlated assets, so σ<sub>P</sub> = |<i>w</i><sub>1</sub>σ<sub>1</sub> ± <i>w</i><sub>2</sub>σ<sub>2</sub>|): dσ/d<i>m</i> ≈ ' + fmt(slope, 3) + '</span>');
+          })();
       return '<h3>5. The frontier formula</h3>' +
         '<p>Because 2Σ<b class="v">w</b> = <i>λ</i>μ + <i>γ</i>1 + ν and <i>ν</i><sub><i>i</i></sub><i>w</i><sub><i>i</i></sub> = 0, the variance collapses to a single expression in the multipliers, and then in <i>m</i>:</p>' +
         '<div class="eq"><span class="nb">σ<sup>2</sup>(<i>m</i>) = ' + V('w') + T + V('Σ') + V('w') + ' = ' + frac('1', '2') + '(<i>λm</i> + <i>γ</i>)</span><br><span class="nb">= ' + frac('<i>A</i><sub>S</sub><i>m</i><sup>2</sup> − 2<i>B</i><sub>S</sub><i>m</i> + <i>C</i><sub>S</sub>', '<i>D</i><sub>S</sub>') + '</span></div>' +
@@ -677,12 +696,14 @@ const Core = (function () {
         live(coef + ln('At <i>m</i> = ' + pct(m), '<span>σ<sup>2</sup> = ' + fmt(v, 5) + '</span><span>σ<sub>P</sub> = ' + pct(Math.sqrt(v)) + '</span>') +
           ln('Corner portfolios at <i>m</i> =', '<span>' + cornerList() + '</span>'));
     }
+    var zero = M.gmv.v < 1e-10
+      ? '<li>Here the minimum has <b>zero risk</b>. With perfect negative correlation the two assets can be mixed so that their movements cancel exactly: each weight is proportional to the <em>other</em> asset\'s standard deviation.</li>' : '';
     var corners = M.breaks.length
       ? '<li>The weights are straight lines in <i>m</i> between two corners, so two portfolios on the same piece generate the rest of it (two-fund separation inside a piece). At each corner (' + cornerList() + ') an asset enters or leaves and the slope changes.</li>'
       : '<li>With these inputs the same assets are held at every target return, so the weights are straight lines in <i>m</i> from one end of the frontier to the other. With three assets you will see corners where an asset enters or leaves.</li>';
     return '<h3>6. Reading the frontier</h3>' +
       '<ul style="margin:.4rem 0 .2rem;padding-left:1.2rem"><li>The lowest point of the curve is the <b>global minimum-variance portfolio</b> for long-only investors: it minimises <b class="v">w</b><sup>T</sup>Σ<b class="v">w</b> subject to <b class="v">w</b><sup>T</sup>1 = 1 and <b class="v">w</b> ≥ 0.</li>' +
-      '<li>Above it, the curve is the <b>efficient frontier</b>: the highest return for each level of risk. It ends in the asset with the highest expected return, held at 100%. Below the minimum point (dashed) every portfolio has a twin with the same risk and a higher return.</li>' + corners + '</ul>' +
+      zero + '<li>Above it, the curve is the <b>efficient frontier</b>: the highest return for each level of risk. It ends in the asset with the highest expected return, held at 100%. Below the minimum point (dashed) every portfolio has a twin with the same risk and a higher return.</li>' + corners + '</ul>' +
       live(ln('GMV', '<span><i>m</i><sub>g</sub> = ' + pct(M.gmv.m) + '</span><span>σ<sub>g</sub> = ' + pct(Math.sqrt(M.gmv.v)) + '</span>') + ln(V('w') + '<sub>g</sub> =', vec(M.gmv.w)) + ln('Corner portfolios at <i>m</i> =', '<span>' + cornerList() + '</span>'));
   }
 
