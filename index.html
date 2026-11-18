@@ -76,6 +76,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .kpi .sm{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .kpi.sel .val{color:var(--sel)}
 .kpi.gm .val{color:var(--fg)}
+.kpi.tan .val{color:var(--curve)}
+.sl.off{opacity:.45}
 .chips{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:3px}
 .chip{font-size:.85rem;font-variant-numeric:tabular-nums;white-space:nowrap}
 .chip.neg{color:var(--sel)}
@@ -94,6 +96,7 @@ svg.chart .guide{stroke:var(--sel);stroke-width:1.2;stroke-dasharray:4 4;fill:no
 svg.chart .selpt{fill:var(--sel);stroke:var(--surface);stroke-width:2}
 svg.chart .selhalo{fill:var(--sel);opacity:.18}
 svg.chart .gmvpt{fill:var(--gmv);stroke:var(--surface);stroke-width:1.5}
+svg.chart .tanpt{fill:var(--curve);stroke:var(--surface);stroke-width:2}
 svg.chart .asset{stroke:var(--surface);stroke-width:2}
 .legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:.82rem;color:var(--muted)}
 .legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
@@ -104,6 +107,7 @@ svg.chart .asset{stroke:var(--surface);stroke-width:2}
 .lg-sel{width:11px;height:11px;border-radius:50%;background:var(--sel)}
 .lg-cloud{width:11px;height:11px;border-radius:50%;background:var(--cloud)}
 .lg-corner{width:11px;height:11px;border-radius:50%;border:2.5px solid var(--curve);background:var(--surface)}
+.lg-tan{width:12px;height:12px;border-radius:50%;background:var(--curve)}
 footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:80ch}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -169,7 +173,7 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:80ch}
     </main>
   </div>
   <footer>
-    Assumptions: short sales are not allowed (every weight is at least 0 and the weights add up to 1), there is no risk-free asset, and returns are summarised by their means and covariance matrix. Adding a risk-free asset turns the frontier into the Capital Market Line (next lecture, CAPM).
+    Assumptions: short sales are not allowed (every weight is at least 0 and the weights add up to 1), and returns are summarised by their means and covariance matrix. There is no risk-free asset unless you give one asset a standard deviation of 0. The frontier then starts on the vertical axis at that asset's return, follows a straight line (the Capital Market Line) up to the tangency portfolio T and, because borrowing is not allowed, continues along the frontier of the risky assets (next lecture, CAPM).
   </footer>
 </div>
 
@@ -258,15 +262,35 @@ const Core = (function () {
     }
     return out;
   }
+  // Tangency portfolio when one asset (index model.rf) is risk-free. For targets above the risk-free return the
+  // weight of the risk-free asset falls linearly from 1 to 0; T is the portfolio where it reaches 0.
+  function tangency(model) {
+    const k = model.rf, rf = model.mu[k];
+    if (rf >= model.mmax - 1e-9) return null;
+    const f = function (m) { const s = solveAt(model, m); return s ? s.w[k] : 0; };
+    if (f(model.mmax) > 1e-9) return null;
+    let lo = rf, hi = model.mmax;
+    for (let it = 0; it < 100; it++) { const mid = (lo + hi) / 2; if (f(mid) > 1e-9) lo = mid; else hi = mid; }
+    const s = solveAt(model, hi);
+    if (!s) return null;
+    return { m: dot(s.w, model.mu), v: s.v, w: s.w, atAsset: hi >= model.mmax - 1e-7 };
+  }
   // mu, sd in decimals (0.08 = 8%)
   function fit(mu, sd, rho) {
     const n = mu.length;
     const sg = sigmaFrom(sd, rho), R = sg.R, S = sg.S;
-    if (sd.some(function (s) { return !(s > 0); })) return { ok: false, reason: 'sd', S: S };
-    const dR = n === 2 ? 1 - R[0][1] * R[0][1]
-      : 1 + 2 * R[0][1] * R[0][2] * R[1][2] - R[0][1] * R[0][1] - R[0][2] * R[0][2] - R[1][2] * R[1][2];
-    const pairs = n === 2 ? [R[0][1]] : [R[0][1], R[0][2], R[1][2]];
-    if (!(dR > -1e-9) || pairs.some(function (r) { return Math.abs(r) > 1 + 1e-12; })) return { ok: false, reason: 'pd', S: S };
+    // an asset with sd = 0 is risk-free: there can be at most one, and its correlations with the others play no role
+    const zero = sd.map(function (s) { return s < 1e-12; }), nz = zero.filter(Boolean).length, rf = zero.indexOf(true);
+    if (sd.some(function (s) { return !(s >= 0); }) || nz > 1) return { ok: false, reason: 'sd', S: S };
+    if (nz === 0) {
+      const dR = n === 2 ? 1 - R[0][1] * R[0][1]
+        : 1 + 2 * R[0][1] * R[0][2] * R[1][2] - R[0][1] * R[0][1] - R[0][2] * R[0][2] - R[1][2] * R[1][2];
+      const pairs = n === 2 ? [R[0][1]] : [R[0][1], R[0][2], R[1][2]];
+      if (!(dR > -1e-9) || pairs.some(function (r) { return Math.abs(r) > 1 + 1e-12; })) return { ok: false, reason: 'pd', S: S };
+    } else if (n === 3) {
+      const a = rf === 0 ? 1 : 0, b = rf === 2 ? 1 : 2;
+      if (Math.abs(R[a][b]) > 1 + 1e-12) return { ok: false, reason: 'pd', S: S };
+    }
     const mmin = Math.min.apply(null, mu), mmax = Math.max.apply(null, mu);
     if (mmax - mmin < 1e-9) return { ok: false, reason: 'means', S: S };
     const model = { ok: true, n: n, S: S, R: R, mu: mu, mmin: mmin, mmax: mmax };
@@ -275,6 +299,8 @@ const Core = (function () {
     model.w = function (m) { const s = solveAt(model, m); return s ? s.w : null; };
     model.gmv = gmvLO(model);
     model.breaks = breakpoints(model);
+    model.rf = rf;
+    model.tan = rf >= 0 ? tangency(model) : null;
     return model;
   }
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -324,7 +350,7 @@ const Core = (function () {
     for (var i = 0; i < n; i++) {
       h += '<div class="asset-row"><span class="nm"><span class="sw" style="background:' + ASSET_COLORS[i] + '"></span>' + S.names[i] + '</span>' +
         '<label>μ (%)<input type="number" step="0.5" id="mu' + i + '" value="' + S.mu[i] + '" inputmode="decimal"></label>' +
-        '<label>σ (%)<input type="number" step="0.5" min="0.5" id="sd' + i + '" value="' + S.sd[i] + '" inputmode="decimal"></label></div>';
+        '<label>σ (%)<input type="number" step="0.5" min="0" id="sd' + i + '" value="' + S.sd[i] + '" inputmode="decimal"></label></div>';
     }
     $('assets').innerHTML = h;
     var labels = n === 2 ? ['ρ(' + S.names[0] + ',' + S.names[1] + ')'] : ['ρ(1,2)', 'ρ(1,3)', 'ρ(2,3)'];
@@ -333,6 +359,7 @@ const Core = (function () {
       r += '<div class="sl"><div class="row"><label for="rho' + k + '">' + labels[k] + '</label><output id="rhoOut' + k + '" for="rho' + k + '">' + fmt(S.rho[k], 2) + '</output></div>' +
         '<input id="rho' + k + '" type="range" min="-1" max="1" step="0.01" value="' + S.rho[k] + '"></div>';
     }
+    r += '<p class="hint" id="rfHint" hidden>An asset with σ = 0 is risk-free, so its correlations do not matter.</p>';
     $('rhos').innerHTML = r;
     for (var j = 0; j < n; j++) {
       (function (j) {
@@ -363,12 +390,26 @@ const Core = (function () {
   }
 
   /* ---------- model ---------- */
+  var PAIRS = { 2: [[0, 1]], 3: [[0, 1], [0, 2], [1, 2]] };
+  function isRf(i) { return S.sd[i] / 100 < 1e-12; }
+  // correlations that involve a risk-free asset have no effect: grey them out
+  function syncRho() {
+    var any = false;
+    PAIRS[S.n].forEach(function (pr, k) {
+      var off = isRf(pr[0]) || isRf(pr[1]), sl = $('rho' + k);
+      any = any || off;
+      sl.disabled = off; sl.parentNode.classList.toggle('off', off);
+      $('rhoOut' + k).textContent = off ? 'n/a' : fmt(S.rho[k], 2);
+    });
+    $('rfHint').hidden = !any;
+  }
   function recompute() {
+    syncRho();
     var mu = S.mu.map(function (x) { return x / 100; }), sd = S.sd.map(function (x) { return x / 100; });
     M = Core.fit(mu, sd, S.rho);
     var msg = $('msg'); msg.innerHTML = '';
     if (!M.ok) {
-      var t = { sd: 'Each standard deviation must be positive.',
+      var t = { sd: 'Standard deviations cannot be negative, and at most one asset can have a standard deviation of 0 (a risk-free asset).',
         pd: 'These correlations cannot all hold together. With three assets, two assets that are perfectly correlated (+1) must have the same correlation with the third, and for −1 the correlations with the third must be opposite. Change one of them.',
         means: 'All expected returns are equal, so there is nothing to trade off and no frontier. Make at least two expected returns different.' }[M.reason];
       msg.innerHTML = '<div class="warn">' + t + '</div>';
@@ -392,18 +433,26 @@ const Core = (function () {
   function drawKpis() {
     var el = $('kpis');
     if (!M.ok) { el.innerHTML = ''; return; }
-    var m = S.m / 100, w = M.w(m), sp = Math.sqrt(M.var2(m));
+    var m = S.m / 100, w = M.w(m), sp = Math.sqrt(Math.max(M.var2(m), 0));
     var chips = w.map(function (x, i) { return '<span class="chip"><span class="sw" style="background:' + ASSET_COLORS[i] + '"></span>' + S.names[i] + ' ' + pct(x, 1) + '</span>'; }).join('');
+    var tan = '';
+    if (M.tan) {
+      var T = M.tan, sT = Math.sqrt(Math.max(T.v, 0));
+      var tChips = T.w.map(function (x, i) { return i === M.rf ? '' : '<span class="chip"><span class="sw" style="background:' + ASSET_COLORS[i] + '"></span>' + S.names[i] + ' ' + pct(x, 1) + '</span>'; }).join('');
+      tan = '<div class="kpi tan"><div class="lab">TANGENCY PORTFOLIO <i>T</i></div><div class="val">σ ' + pct(sT) + '</div><div class="sm">return ' + pct(T.m) + (sT > 1e-6 ? ' · Sharpe ratio ' + fmt((T.m - M.mu[M.rf]) / sT, 3) : ' · Sharpe ratio unbounded') + '</div><div class="chips">' + tChips + '</div></div>';
+    }
     el.innerHTML =
       '<div class="kpi sel"><div class="lab">TARGET RETURN <i>m</i></div><div class="val">' + pct(m) + '</div><div class="sm">selected portfolio P</div></div>' +
       '<div class="kpi sel"><div class="lab">LOWEST RISK σ<sub>P</sub> AT THAT RETURN</div><div class="val">' + pct(sp) + '</div><div class="sm">variance ' + fmt(sp * sp, 5) + '</div></div>' +
-      '<div class="kpi gm"><div class="lab">GLOBAL MIN-VARIANCE</div><div class="val">σ ' + pct(Math.sqrt(M.gmv.v)) + '</div><div class="sm">return ' + pct(M.gmv.m) + '</div></div>' +
+      '<div class="kpi gm"><div class="lab">GLOBAL MIN-VARIANCE</div><div class="val">σ ' + pct(Math.sqrt(Math.max(M.gmv.v, 0))) + '</div><div class="sm">return ' + pct(M.gmv.m) + '</div></div>' + tan +
       '<div class="kpi"><div class="lab">WEIGHTS OF P (SUM = 100%)</div><div class="chips">' + chips + '</div></div>';
   }
 
   function drawLegend() {
     var h = '<span><i class="lg-eff"></i>efficient frontier</span><span><i class="lg-ineff"></i>inefficient branch</span><span><i class="lg-gmv"></i>global minimum variance</span><span><i class="lg-sel"></i>selected portfolio P</span>';
-    if (M.ok && M.breaks.length) h += '<span><i class="lg-corner"></i>corner portfolio (an asset enters or leaves)</span>';
+    var tI = M.ok && M.tan && !M.tan.atAsset;
+    if (tI) h += '<span><i class="lg-tan"></i>tangency portfolio T (the risk-free asset drops out)</span>';
+    if (M.ok && M.breaks.filter(function (b) { return !(tI && Math.abs(b - M.tan.m) < 1e-6); }).length) h += '<span><i class="lg-corner"></i>corner portfolio (an asset enters or leaves)</span>';
     if (S.cloud && S.n === 3) h += '<span><i class="lg-cloud"></i>random long-only portfolios</span>';
     $('legend').innerHTML = h;
     $('wlegend').innerHTML = S.names.map(function (nm, i) { return '<span><span class="sw" style="background:' + ASSET_COLORS[i] + '"></span>weight in asset ' + nm + '</span>'; }).join('');
@@ -443,9 +492,17 @@ const Core = (function () {
     }
     out += '<path class="ineff" d="' + path(ineff) + '"/><path class="eff" d="' + path(eff) + '"/>';
     // corner portfolios
+    var T = M.tan && !M.tan.atAsset ? M.tan : null;
     M.breaks.forEach(function (mb) {
+      if (T && Math.abs(mb - T.m) < 1e-6) return;
       out += '<circle class="corner" cx="' + sx(X(M.var2(mb))).toFixed(1) + '" cy="' + sy(mb * 100).toFixed(1) + '" r="5"/>';
     });
+    // tangency portfolio (only when there is a risk-free asset)
+    if (T) {
+      var tpx = sx(X(T.v)), tpy = sy(T.m * 100);
+      out += '<circle class="tanpt" cx="' + tpx.toFixed(1) + '" cy="' + tpy.toFixed(1) + '" r="6.5"/>';
+      out += '<text class="halo" x="' + (tpx + 11).toFixed(1) + '" y="' + (tpy + 18).toFixed(1) + '" style="fill:var(--curve);font-weight:700;font-size:14px">T</text>';
+    }
     // selected portfolio guides
     var m0 = S.m, pv = X(M.var2(m0 / 100)), px = sx(pv), py = sy(m0);
     out += '<path class="guide" d="M' + ML + ' ' + py.toFixed(1) + 'H' + px.toFixed(1) + 'V' + (H - MB) + '"/>';
@@ -458,7 +515,8 @@ const Core = (function () {
     out += '<text class="halo" x="' + (sx(gp[0]) + gDx).toFixed(1) + '" y="' + (sy(gp[1]) + 18).toFixed(1) + '" text-anchor="' + gAnch + '" style="fill:var(--fg)">GMV</text>';
     // assets
     pts.forEach(function (p, k) {
-      out += '<circle class="asset" cx="' + sx(p[0]).toFixed(1) + '" cy="' + sy(p[1]).toFixed(1) + '" r="6.5" style="fill:' + ASSET_COLORS[k] + '"/><text class="halo" x="' + (sx(p[0]) + 10).toFixed(1) + '" y="' + (sy(p[1]) + 4).toFixed(1) + '" style="fill:var(--fg);font-weight:600;font-size:13px">' + S.names[k] + '</text>';
+      var lab = S.names[k] + (k === M.rf ? ' (risk-free)' : '') + (M.tan && M.tan.atAsset && M.tan.w[k] > 0.999 ? ' = T' : '');
+      out += '<circle class="asset" cx="' + sx(p[0]).toFixed(1) + '" cy="' + sy(p[1]).toFixed(1) + '" r="6.5" style="fill:' + ASSET_COLORS[k] + '"/><text class="halo" x="' + (sx(p[0]) + 10).toFixed(1) + '" y="' + (sy(p[1]) + 4).toFixed(1) + '" style="fill:var(--fg);font-weight:600;font-size:13px">' + lab + '</text>';
     });
     // P
     out += '<circle class="selhalo" cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="13"/><circle class="selpt" cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="6.5"/>';
@@ -485,9 +543,12 @@ const Core = (function () {
     out += '<text class="ax-title" x="' + (ML + (W - ML - MR) / 2) + '" y="' + (H - 8) + '" text-anchor="middle">Target return m (%)</text>';
     out += '<text class="ax-title" transform="rotate(-90 16 ' + (MT + (H - MT - MB) / 2) + ')" x="16" y="' + (MT + (H - MT - MB) / 2) + '" text-anchor="middle">Weight (%)</text>';
     // corner portfolios, GMV, selected m
-    M.breaks.forEach(function (mb) {
+    var tM = M.tan && !M.tan.atAsset ? M.tan.m : null;
+    M.breaks.concat(tM === null ? [] : [tM]).forEach(function (mb, j) {
+      var isT = tM !== null && Math.abs(mb - tM) < 1e-6;
+      if (isT && j < M.breaks.length) return;
       out += '<line x1="' + sx(mb * 100) + '" y1="' + MT + '" x2="' + sx(mb * 100) + '" y2="' + (H - MB) + '" style="stroke:var(--curve);stroke-width:1.2;stroke-dasharray:1 4"/>';
-      out += '<text class="halo" x="' + (sx(mb * 100) + 4) + '" y="' + (MT + 12) + '" style="fill:var(--curve)">corner</text>';
+      out += '<text class="halo" x="' + (sx(mb * 100) + 4) + '" y="' + (MT + 12) + '" style="fill:var(--curve)' + (isT ? ';font-weight:700' : '') + '">' + (isT ? 'T' : 'corner') + '</text>';
     });
     if (M.gmv.m > M.mmin + 1e-9 && M.gmv.m < M.mmax - 1e-9) {
       out += '<line x1="' + sx(M.gmv.m * 100) + '" y1="' + MT + '" x2="' + sx(M.gmv.m * 100) + '" y2="' + (H - MB) + '" style="stroke:var(--gmv);stroke-width:1.2;stroke-dasharray:2 4"/>';
