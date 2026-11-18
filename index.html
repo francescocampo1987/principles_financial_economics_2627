@@ -97,6 +97,7 @@ svg.chart .selpt{fill:var(--sel);stroke:var(--surface);stroke-width:2}
 svg.chart .selhalo{fill:var(--sel);opacity:.18}
 svg.chart .gmvpt{fill:var(--gmv);stroke:var(--surface);stroke-width:1.5}
 svg.chart .tanpt{fill:var(--curve);stroke:var(--surface);stroke-width:2}
+svg.chart .lev{stroke:var(--curve);stroke-width:3;fill:none;stroke-dasharray:7 5;stroke-linejoin:round}
 svg.chart .asset{stroke:var(--surface);stroke-width:2}
 .legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:.82rem;color:var(--muted)}
 .legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
@@ -108,6 +109,7 @@ svg.chart .asset{stroke:var(--surface);stroke-width:2}
 .lg-cloud{width:11px;height:11px;border-radius:50%;background:var(--cloud)}
 .lg-corner{width:11px;height:11px;border-radius:50%;border:2.5px solid var(--curve);background:var(--surface)}
 .lg-tan{width:12px;height:12px;border-radius:50%;background:var(--curve)}
+.lg-lev{width:22px;height:0;border-top:3px dashed var(--curve)}
 footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:80ch}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -173,7 +175,7 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:80ch}
     </main>
   </div>
   <footer>
-    Assumptions: short sales of the risky assets are not allowed (their weights are at least 0 and all the weights add up to 1), and returns are summarised by their means and covariance matrix. There is no risk-free asset unless you give one asset a standard deviation of 0. That asset can then be lent and borrowed at its return (its weight can be negative), and the efficient frontier becomes the straight Capital Market Line through the tangency portfolio T (next lecture, CAPM).
+    Assumptions: short sales of the risky assets are not allowed (their weights are at least 0 and all the weights add up to 1), and returns are summarised by their means and covariance matrix. There is no risk-free asset unless you give one asset a standard deviation of 0. That asset can then be lent and borrowed at its return (its weight can be negative), and the efficient frontier becomes the straight Capital Market Line through the tangency portfolio T, dashed beyond T where it requires borrowing (next lecture, CAPM).
   </footer>
 </div>
 
@@ -492,6 +494,7 @@ const Core = (function () {
     var h = '<span><i class="lg-eff"></i>efficient frontier' + (M.rf >= 0 ? ' (the Capital Market Line)' : '') + '</span>' + (M.rf >= 0 && !(M.mmin < M.gmv.m - 1e-9) ? '' : '<span><i class="lg-ineff"></i>inefficient branch</span>') + '<span><i class="lg-gmv"></i>global minimum variance</span><span><i class="lg-sel"></i>selected portfolio P</span>';
     var tI = M.ok && M.tan && !M.tan.atAsset;
     if (tI) h += '<span><i class="lg-tan"></i>tangency portfolio T (no money in the risk-free asset)</span>';
+    if (M.ok && M.tan && M.mmax > M.tan.m + 1e-9) h += '<span><i class="lg-lev"></i>beyond T (needs borrowing at the risk-free rate)</span>';
     if (M.ok && M.breaks.filter(function (b) { return !(tI && Math.abs(b - M.tan.m) < 1e-6); }).length) h += '<span><i class="lg-corner"></i>corner portfolio (an asset enters or leaves)</span>';
     if (S.cloud && S.n === 3) h += '<span><i class="lg-cloud"></i>random long-only portfolios</span>';
     $('legend').innerHTML = h;
@@ -512,6 +515,13 @@ const Core = (function () {
     }
     var gp = [X(M.gmv.v), mg * 100];
     ineff.push(gp); eff.unshift(gp);
+    var effLev = [];
+    if (M.tan) {   // beyond T the frontier needs borrowing at the risk-free rate
+      var tPt = [X(M.tan.v), M.tan.m * 100], solid = [];
+      effLev.push(tPt);
+      eff.forEach(function (p) { if (p[1] <= tPt[1] + 1e-9) solid.push(p); else effLev.push(p); });
+      solid.push(tPt); eff = solid;
+    }
     var pts = S.sd.map(function (s, k) { return [X(Math.pow(s / 100, 2)), S.mu[k]]; });
     pts.forEach(function (p) { xmax = Math.max(xmax, p[0]); });
     CL.forEach(function (c) { xmax = Math.max(xmax, X(c[0])); });
@@ -530,7 +540,7 @@ const Core = (function () {
     if (S.cloud && S.n === 3) {
       out += '<path class="cloud" d="' + CL.map(function (c) { return 'M' + sx(X(c[0])).toFixed(1) + ' ' + sy(c[1] * 100).toFixed(1) + 'h0'; }).join('') + '"/>';
     }
-    out += '<path class="ineff" d="' + path(ineff) + '"/><path class="eff" d="' + path(eff) + '"/>';
+    out += '<path class="ineff" d="' + path(ineff) + '"/><path class="eff" d="' + path(eff) + '"/>' + (effLev.length > 1 ? '<path class="lev" d="' + path(effLev) + '"/>' : '');
     // corner portfolios
     var T = M.tan && !M.tan.atAsset ? M.tan : null;
     M.breaks.forEach(function (mb) {
