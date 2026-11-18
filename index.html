@@ -416,10 +416,12 @@ const Core = (function () {
     $('cloudRow').hidden = (n === 2);
   }
 
+  var SAVED = {};   // last inputs of each problem, restored when you switch back to it
   function setN(n) {
     if (n === S.n) return;
     var keep = { axis: S.axis, cloud: S.cloud };
-    S = clone(PRESETS[n]); S.n = n; S.axis = keep.axis; S.cloud = keep.cloud;
+    SAVED[S.n] = clone(S);
+    S = clone(SAVED[n] || PRESETS[n]); S.n = n; S.axis = keep.axis; S.cloud = keep.cloud;
     buildControls(); recompute();
   }
   function resetPreset() {
