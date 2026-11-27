@@ -146,6 +146,7 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:86ch}
       <div class="card-head"><h2 id="h2b">2. Duration and convexity</h2></div>
       <div class="tablewrap"><table class="tbl" id="dur"></table></div>
       <div class="formulas">
+        <div class="f"><div class="f-name">Present value of a cash flow</div><div class="f-eq"><span data-tex="PV_k=\frac{CF_k}{\left(1+\frac{y}{m}\right)^{m\,t_k}}" data-display>PV<sub>k</sub> = CF<sub>k</sub> / (1 + y/m)<sup>m·t<sub>k</sub></sup></span></div></div>
         <div class="f"><div class="f-name">Price</div><div class="f-eq"><span data-tex="P=\sum_{k=1}^{n} PV_k=\sum_{k=1}^{n}\frac{CF_k}{\left(1+\frac{y}{m}\right)^{m\,t_k}}" data-display>P = Σ PV<sub>k</sub> = Σ CF<sub>k</sub> / (1 + y/m)<sup>m·t<sub>k</sub></sup></span></div></div>
         <div class="f"><div class="f-name">Macaulay duration</div><div class="f-eq"><span data-tex="D_{\text{M}}=\frac{\displaystyle\sum_{k=1}^{n} t_k\,PV_k}{P}" data-display>D<sub>M</sub> = Σ t<sub>k</sub> · PV<sub>k</sub> / P</span></div></div>
         <div class="f"><div class="f-name">Modified duration</div><div class="f-eq"><span data-tex="D_{\text{mod}}=\frac{D_{\text{M}}}{1+\dfrac{y}{m}}" data-display>D<sub>mod</sub> = D<sub>M</sub> / (1 + y/m)</span></div></div>
@@ -155,7 +156,7 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:86ch}
       <dl class="where">
         <dt><span data-tex="t_k">t<sub>k</sub></span></dt><dd>number of years between the valuation date and the date on which the cash flow <span data-tex="CF_k">CF<sub>k</sub></span> is paid</dd>
         <dt><span data-tex="CF_k">CF<sub>k</sub></span></dt><dd>cash flow number <span data-tex="k"><i>k</i></span>: the coupon, plus the par value at maturity</dd>
-        <dt><span data-tex="PV_k">PV<sub>k</sub></span></dt><dd>its present value, that is, the <span data-tex="k"><i>k</i></span>-th term of the sum in the price formula</dd>
+        <dt><span data-tex="PV_k">PV<sub>k</sub></span></dt><dd>present value of the cash flow <span data-tex="CF_k">CF<sub>k</sub></span>: what it is worth on the valuation date, once discounted over <span data-tex="t_k">t<sub>k</sub></span> years at the yield to maturity</dd>
         <dt><span data-tex="n"><i>n</i></span></dt><dd>number of cash flows</dd>
         <dt><span data-tex="y"><i>y</i></span></dt><dd>annual yield to maturity, as a decimal</dd>
         <dt><span data-tex="m"><i>m</i></span></dt><dd>number of coupon payments (and of compounding periods) per year</dd>
