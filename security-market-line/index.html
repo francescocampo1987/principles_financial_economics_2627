@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Security Market Line</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css" integrity="sha512-aOFyMMzZF7l7ei3vOKgQiRhZnYqk9YC/uMzl4T0j5N5D3Kul+QAFU8ssENDRMAqr/lxDOjMF69dSYJ8HYqY+WQ==" crossorigin="anonymous" referrerpolicy="no-referrer">
 <style>
 /* Concept: a teaching bench for the CAPM. Controls sit in a left rail; the main column holds the Security Market Line (drag the points), a table that says where each asset stands, and the arbitrage built step by step for the selected asset.
    Same visual language as the efficient-frontier page: deep blue for the SML, teal for underpriced assets, dark red for overpriced ones. Text is Palatino to match the slides, with a system sans for controls. */
@@ -108,8 +109,11 @@ svg.chart .hit:active{cursor:grabbing}
 .ctl-row label{display:grid;gap:3px;font-size:.78rem;color:var(--muted)}
 .steps p{margin:6px 0}
 .steps ul{margin:6px 0;padding-left:1.3rem}
-.eqs{font-family:var(--font-display);font-size:1.02rem;background:var(--surface2);border-radius:8px;padding:10px 14px;margin:8px 0;line-height:1.9;overflow-x:auto}
-.eqs .res{font-weight:700}
+.eqs{background:var(--surface2);border-radius:8px;padding:8px 16px;margin:8px 0;overflow-x:auto;overflow-y:hidden}
+.katex{font-size:1.1em;text-transform:none;letter-spacing:normal;position:relative}
+.eqs .katex-display{margin:0;padding:8px 0;text-align:left}
+.eqs .katex-display>.katex{text-align:left}
+@media (max-width:640px){.eqs{padding:6px 12px}.eqs .katex{font-size:.98em}}
 .ok{color:var(--under);font-weight:700} .bad{color:var(--sel);font-weight:700}
 footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:84ch}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -120,7 +124,7 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:84ch}
   <header class="top">
     <div>
       <h1>The Security Market Line</h1>
-      <p class="sub">CAPM: E[R<sub>i</sub>] = R<sub>F</sub> + β<sub>i</sub> (E[R<sub>T</sub>] − R<sub>F</sub>), where T is the market portfolio. Change the inputs or drag the points, see which assets are mispriced, and build the zero-net-investment arbitrage that exploits the mispricing.</p>
+      <p class="sub">CAPM: <span data-tex="E[R_i]=R_F+\beta_i\,\big(E[R_T]-R_F\big)">E[R<sub>i</sub>] = R<sub>F</sub> + β<sub>i</sub> (E[R<sub>T</sub>] − R<sub>F</sub>)</span>, where <span data-tex="T">T</span> is the market portfolio. Change the inputs or drag the points, see which assets are mispriced, and build the zero-net-investment arbitrage that exploits the mispricing.</p>
     </div>
     <button class="btn" id="theme" type="button" aria-label="Switch color theme">Theme: auto</button>
   </header>
@@ -132,11 +136,11 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:84ch}
         <div class="ctl-group">
           <p class="ctl-title">Market portfolio and risk-free asset</p>
           <div class="sl">
-            <div class="row"><label for="rf">Risk-free rate <i>R<sub>F</sub></i></label><output id="rfOut" for="rf"></output></div>
+            <div class="row"><label for="rf">Risk-free rate <span data-tex="R_F"><i>R<sub>F</sub></i></span></label><output id="rfOut" for="rf"></output></div>
             <input id="rf" type="range" min="0" max="10" step="0.1">
           </div>
           <div class="sl">
-            <div class="row"><label for="et">Market return <i>E[R<sub>T</sub>]</i></label><output id="etOut" for="et"></output></div>
+            <div class="row"><label for="et">Market return <span data-tex="E[R_T]"><i>E[R<sub>T</sub>]</i></span></label><output id="etOut" for="et"></output></div>
             <input id="et" type="range" min="0" max="25" step="0.1">
           </div>
           <p class="hint" id="mrp"></p>
@@ -175,7 +179,7 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:84ch}
     </main>
   </div>
   <footer>
-    Assumptions: the CAPM holds for the market portfolio T and the risk-free asset F; you can borrow and lend at R<sub>F</sub> and sell short without frictions (no borrowing fees, margin requirements or dividends to pay); time-1 amounts are expected values. A strategy exploits a mispriced asset by taking a position in it and the opposite position in a portfolio P of T and F with the same beta: it needs no money today and has no market risk, but earns the mispricing α.
+    Assumptions: the CAPM holds for the market portfolio T and the risk-free asset F; you can borrow and lend at R<sub>F</sub> and sell short without frictions (no borrowing fees, margin requirements or dividends to pay); time-1 amounts are expected values. A strategy exploits a mispriced asset by taking a position in it and the opposite position in a portfolio P of T and F with the same beta: it needs no money today and has no market risk, but earns the mispricing <span data-tex="\alpha">α</span>.
   </footer>
 </div>
 
@@ -210,6 +214,7 @@ const Core = (function () {
 /*CORE-END*/
 </script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" integrity="sha512-UPFOadao2nEorjtjl0xUTtN3w20Ja143UPEU6EyJ1mi5MB2bDtMkiWmqGDqi47xNLB5z1dy31GKJDEWhjUJFiQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 (function () {
   'use strict';
@@ -219,6 +224,19 @@ const Core = (function () {
 
   function clone(p) { return { rf: p.rf, et: p.et, assets: p.assets.map(function (a) { return { n: a.n, b: a.b, e: a.e }; }) }; }
   function $(id) { return document.getElementById(id); }
+  // formulas are typeset with KaTeX (LaTeX syntax); if the library cannot be loaded, the plain version is shown instead
+  function tex(src, plain, display) {
+    return window.katex ? window.katex.renderToString(src, { displayMode: !!display, throwOnError: false }) : plain;
+  }
+  function typesetStatic() {
+    if (!window.katex) return;
+    document.querySelectorAll('[data-tex]').forEach(function (el) {
+      window.katex.render(el.getAttribute('data-tex'), el, { displayMode: el.hasAttribute('data-display'), throwOnError: false });
+    });
+  }
+  // a formatted number or percentage, made safe for LaTeX
+  function tn(s) { return String(s).replace(/−/g, '-').replace(/%/g, '\\%'); }
+  function tp(s) { return /^\u2212/.test(s) ? '(' + tn(s) + ')' : tn(s); }
   function fmt(x, d) { var s = Number(x).toFixed(d); if (/^-0\.?0*$/.test(s)) s = s.slice(1); return s.replace('-', '−'); }
   function sgn(x, d) { var s = fmt(x, d); return (/^−/.test(s) ? '' : '+') + s; }
   function pct(x, d) { return fmt(x * 100, d === undefined ? 2 : d) + '%'; }
@@ -258,8 +276,8 @@ const Core = (function () {
     var h = '<p class="ctl-title">Assets (beta, expected return)</p>';
     S.assets.forEach(function (a, i) {
       h += '<div class="asset-row"><button type="button" class="nm' + (i === S.sel ? ' on' : '') + '" data-sel="' + i + '" title="Build the arbitrage for this asset">' + esc(a.n) + '</button>' +
-        '<label>β<input type="number" step="0.05" id="b' + i + '" value="' + a.b + '" inputmode="decimal"></label>' +
-        '<label>E[R] (%)<input type="number" step="0.5" id="e' + i + '" value="' + a.e + '" inputmode="decimal"></label>' +
+        '<label>' + tex('\\beta', 'β') + '<input type="number" step="0.05" id="b' + i + '" value="' + a.b + '" inputmode="decimal"></label>' +
+        '<label><span>' + tex('E[R]', 'E[R]') + ' (%)</span><input type="number" step="0.5" id="e' + i + '" value="' + a.e + '" inputmode="decimal"></label>' +
         '<button type="button" class="x" data-del="' + i + '" aria-label="Remove asset ' + esc(a.n) + '"' + (S.assets.length <= 1 ? ' disabled' : '') + '>×</button></div>';
     });
     $('assets').innerHTML = h;
@@ -286,13 +304,13 @@ const Core = (function () {
     ensureSel(); syncInputs();
     $('rfOut').textContent = fmt(S.rf, 1) + '%'; $('etOut').textContent = fmt(S.et, 1) + '%';
     var mrp = S.et - S.rf;
-    $('mrp').innerHTML = 'Market risk premium E[R<sub>T</sub>] − R<sub>F</sub> = <b>' + fmt(mrp, 2) + '%</b>' + (mrp <= 0 ? ' — not positive: the SML slopes down, so higher beta means lower required return.' : ' (the slope of the SML).');
+    $('mrp').innerHTML = 'Market risk premium ' + tex('E[R_T]-R_F', 'E[R<sub>T</sub>] − R<sub>F</sub>') + ' = <b>' + fmt(mrp, 2) + '%</b>' + (mrp <= 0 ? ' — not positive: the SML slopes down, so higher beta means lower required return.' : ' (the slope of the SML).');
     drawKpis(); drawChart(); drawTable(); drawStrategy();
   }
 
   function drawKpis() {
     var R = rows(), n = R.filter(function (r) { return r.st !== 0; }).length, r = R[S.sel], mrp = (S.et - S.rf) / 100, el = $('kpis');
-    var h = '<div class="kpi"><div class="lab">Market risk premium</div><div class="val">' + pct(mrp) + '</div><div class="sm">E[R<sub>T</sub>] − R<sub>F</sub> = slope of the SML</div></div>' +
+    var h = '<div class="kpi"><div class="lab">Market risk premium</div><div class="val">' + pct(mrp) + '</div><div class="sm">' + tex('E[R_T]-R_F', 'E[R<sub>T</sub>] − R<sub>F</sub>') + ' = slope of the SML</div></div>' +
       '<div class="kpi"><div class="lab">Mispriced assets</div><div class="val">' + n + ' of ' + R.length + '</div><div class="sm">assets not on the SML</div></div>';
     if (r) {
       h += '<div class="kpi"><div class="lab">Selected: ' + esc(r.n) + '</div><div class="val ' + ST[r.st].cls + '">' + ST[r.st].short + '</div><div class="sm">required ' + pct(r.req) + ' · expected ' + pct(r.er) + '</div></div>' +
@@ -355,13 +373,16 @@ const Core = (function () {
   }
 
   function drawTable() {
-    var R = rows(), h = '<thead><tr><th>Asset</th><th>β</th><th>E[R]</th><th>CAPM E[R]</th><th>α = E[R] − CAPM</th><th>Position</th></tr></thead><tbody>';
+    var R = rows(), h = '<thead><tr><th>Asset</th><th>' + tex('\\beta', 'β') + '</th><th>' + tex('E[R]', 'E[R]') + '</th><th>' + tex('E[R]^{\\text{CAPM}}', 'CAPM E[R]') + '</th><th>' +
+      tex('\\alpha=E[R]-E[R]^{\\text{CAPM}}', 'α = E[R] − CAPM') + '</th><th>Position</th></tr></thead><tbody>';
     R.forEach(function (r) {
       h += '<tr class="row' + (r.i === S.sel ? ' sel' : '') + '" data-i="' + r.i + '"><td><i>' + esc(r.n) + '</i></td><td>' + fmt(r.b, 2) + '</td><td>' + pct(r.er) + '</td><td>' + pct(r.req) + '</td>' +
         '<td class="' + ST[r.st].cls + '">' + spct(r.al) + '</td><td class="pos ' + ST[r.st].cls + '">' + ST[r.st].txt + '</td></tr>';
     });
     $('tbl').innerHTML = h + '</tbody>';
-    $('tblNote').innerHTML = 'CAPM-required return: E[R<sub>i</sub>]<sup>CAPM</sup> = R<sub>F</sub> + β<sub>i</sub> (E[R<sub>T</sub>] − R<sub>F</sub>) = ' + fmt(S.rf, 2) + '% + β<sub>i</sub> · ' + fmt(S.et - S.rf, 2) + '%.';
+    var capmSrc = '\\begin{aligned}E[R_i]^{\\text{CAPM}}&=R_F+\\beta_i\\,\\big(E[R_T]-R_F\\big)\\\\[4pt]&=' + tn(fmt(S.rf, 2) + '%') + '+\\beta_i\\times ' + tp(fmt(S.et - S.rf, 2) + '%') + '\\end{aligned}';
+    $('tblNote').innerHTML = 'CAPM-required return:<span class="eqs" style="display:block;color:var(--fg);font-size:.95rem">' +
+      tex(capmSrc, 'E[R<sub>i</sub>]<sup>CAPM</sup> = R<sub>F</sub> + β<sub>i</sub> (E[R<sub>T</sub>] − R<sub>F</sub>) = ' + fmt(S.rf, 2) + '% + β<sub>i</sub> · ' + fmt(S.et - S.rf, 2) + '%', true) + '</span>';
   }
 
   function money(x, N) { var d = Math.abs(N) >= 100 ? 2 : 3, s = fmt(Math.abs(x) < 5e-10 ? 0 : x, d); return s; }
@@ -372,16 +393,27 @@ const Core = (function () {
     if (!R.length) { el.innerHTML = '<p class="hint">Add an asset to build a strategy.</p>'; return; }
     var r = R[S.sel], a = S.assets[S.sel], N = S.size, rf = S.rf / 100, et = S.et / 100;
     var nm = '<i>' + esc(r.n) + '</i>', h = '';
-    h += '<p><b>1. Diagnosis.</b> Asset ' + nm + ' has β = ' + fmt(r.b, 2) + ', so the CAPM requires ' + fmt(S.rf, 2) + '% + ' + fmt(r.b, 2) + ' · ' + fmt(S.et - S.rf, 2) + '% = <b>' + pct(r.req) + '</b>, but it is expected to earn <b>' + pct(r.er) + '</b>: α = ' + spct(r.al) + '. ';
+    var A = String(r.n), reqSrc = 'E[R_{' + A + '}]^{\\text{CAPM}}', erSrc = 'E[R_{' + A + '}]';
+    var diag = '\\begin{aligned}' + reqSrc + '&=R_F+\\beta_{' + A + '}\\,\\big(E[R_T]-R_F\\big)' +
+      '\\\\[4pt]&=' + tn(fmt(S.rf, 2) + '%') + '+' + tp(fmt(r.b, 2)) + '\\times ' + tp(fmt(S.et - S.rf, 2) + '%') + '=\\mathbf{' + tn(pct(r.req)) + '}' +
+      '\\\\[12pt]\\alpha_{' + A + '}&=' + erSrc + '-' + reqSrc +
+      '\\\\[4pt]&=' + tn(pct(r.er)) + '-' + tp(pct(r.req)) + '=\\mathbf{' + tn(spct(r.al)) + '}\\end{aligned}';
+    var diagPlain = 'CAPM-required return: ' + fmt(S.rf, 2) + '% + ' + fmt(r.b, 2) + ' · ' + fmt(S.et - S.rf, 2) + '% = <b>' + pct(r.req) + '</b><br>α = ' + pct(r.er) + ' − ' + pct(r.req) + ' = <b>' + spct(r.al) + '</b>';
+    h += '<p><b>1. Diagnosis.</b> Asset ' + nm + ' has ' + tex('\\beta_{' + A + '}=' + tn(fmt(r.b, 2)), 'β = ' + fmt(r.b, 2)) + ' and an expected return of <b>' + pct(r.er) + '</b>. We compare it with the return required by the CAPM:</p>' +
+      '<div class="eqs">' + tex(diag, diagPlain, true) + '</div><p>';
     if (r.st === 0) {
       h += 'It lies exactly <b>on the SML</b> (fairly priced): there is no mispricing, so no arbitrage profit is available. Move the asset off the line to see a strategy.</p>';
       el.innerHTML = h; return;
     }
     h += 'It lies <b class="' + ST[r.st].cls + '">' + (r.st === 1 ? 'above' : 'below') + ' the SML</b>: it is <b class="' + ST[r.st].cls + '">' + ST[r.st].short + '</b>, so we ' + (r.st === 1 ? '<b>buy</b> it' : '<b>short-sell</b> it') + ' and take the opposite position in a portfolio <i>P</i> that has the same beta.</p>';
     var rep = Core.replicate(r.b), hh = rep.wT;   // the exact replicating portfolio: wT = beta, wF = 1 - beta
-    h += '<p><b>2. Replicating portfolio P.</b> The ingredients are the market portfolio T (β<sub>T</sub> = 1) and the risk-free asset F (β<sub>F</sub> = 0). The linear combination of their betas must equal β<sub>' + esc(r.n) + '</sub> and the budget constraint must hold:</p>' +
-      '<div class="eqs">w<sub>T</sub>β<sub>T</sub> + w<sub>F</sub>β<sub>F</sub> = β<sub>' + esc(r.n) + '</sub> &nbsp;⇒&nbsp; w<sub>T</sub>·1 + w<sub>F</sub>·0 = ' + fmt(r.b, 2) + '<br>w<sub>T</sub> + w<sub>F</sub> = 1<br>' +
-      '<span class="res">⇒ w<sub>T</sub><sup>P</sup> = ' + fmt(rep.wT, 2) + ', &nbsp; w<sub>F</sub><sup>P</sup> = ' + fmt(rep.wF, 2) + '</span></div>';
+    var sys = '\\begin{cases}w_T\\,\\beta_T+w_F\\,\\beta_F=\\beta_{' + A + '}\\\\ w_T+w_F=1\\end{cases}';
+    var num2 = '\\Longrightarrow\\quad\\begin{cases}w_T\\times 1+w_F\\times 0=' + tn(fmt(r.b, 2)) + '\\\\ w_T+w_F=1\\end{cases}';
+    var sol = '\\Longrightarrow\\quad\\boxed{w_T^{P}=' + tn(fmt(rep.wT, 2)) + ',\\qquad w_F^{P}=' + tn(fmt(rep.wF, 2)) + '}';
+    h += '<p><b>2. Replicating portfolio ' + tex('P', '<i>P</i>') + '.</b> The ingredients are the market portfolio ' + tex('T', 'T') + ' (' + tex('\\beta_T=1', 'β<sub>T</sub> = 1') + ') and the risk-free asset ' + tex('F', 'F') + ' (' + tex('\\beta_F=0', 'β<sub>F</sub> = 0') + '). The linear combination of their betas must equal ' + tex('\\beta_{' + A + '}', 'β<sub>' + esc(r.n) + '</sub>') + ' and the budget constraint must hold:</p>' +
+      '<div class="eqs">' + tex(sys, 'w<sub>T</sub>β<sub>T</sub> + w<sub>F</sub>β<sub>F</sub> = β<sub>' + esc(r.n) + '</sub>, &nbsp; w<sub>T</sub> + w<sub>F</sub> = 1', true) +
+      tex(num2, '<br>w<sub>T</sub>·1 + w<sub>F</sub>·0 = ' + fmt(r.b, 2) + ', &nbsp; w<sub>T</sub> + w<sub>F</sub> = 1<br>', true) +
+      tex(sol, '<b>w<sub>T</sub><sup>P</sup> = ' + fmt(rep.wT, 2) + ', &nbsp; w<sub>F</sub><sup>P</sup> = ' + fmt(rep.wF, 2) + '</b>', true) + '</div>';
     var tr = Core.trade(r.er, r.b, rf, et, hh, N);
     function verb(id, t0) { var buy = t0 < 0; return id === 'asset' ? (buy ? 'Buy' : 'Short-sell') : id === 'T' ? (buy ? 'Buy' : 'Short-sell') : (buy ? 'Lend' : 'Borrow'); }
     var lbl = { asset: 'asset ' + nm, T: 'the market portfolio <i>T</i>', F: 'at the risk-free rate' };
@@ -404,7 +436,10 @@ const Core = (function () {
     cf += '<tr class="net"><td>Net cashflow</td><td>' + smoney(tr.net0, N) + '</td><td class="' + (tr.net1 > 5e-10 ? 'under' : tr.net1 < -5e-10 ? 'over' : '') + '">' + smoney(tr.net1, N) + '</td></tr></tbody></table></div>';
     h += '<p><b>4. Cashflows</b> (euro; time-1 amounts are expected values):</p>' + cf;
     // result
-    h += '<p><b>5. Result.</b> Net investment at time 0: <b>' + smoney(tr.net0, N) + '</b>. The beta of the combination is β<sub>' + esc(r.n) + '</sub> − (w<sub>T</sub><sup>P</sup>·1 + w<sub>F</sub><sup>P</sup>·0) = ' + fmt(r.b, 2) + ' − ' + fmt(rep.wT, 2) + ' = <span class="ok">0</span>: no market risk. The expected profit is <b class="' + ST[r.st].cls + '">' + smoney(tr.net1, N) + ' euro</b>, i.e., ' + pct(Math.abs(r.al)) + ' of the amount, which is exactly the mispricing |α| — a textbook arbitrage.</p>';
+    var bP = '\\beta_{' + A + '}-\\big(w_T^{P}\\times 1+w_F^{P}\\times 0\\big)=' + tn(fmt(r.b, 2)) + '-' + tp(fmt(rep.wT, 2)) + '=0';
+    h += '<p><b>5. Result.</b> Net investment at time 0: <b>' + smoney(tr.net0, N) + '</b>. The beta of the combination is zero, so there is no market risk:</p>' +
+      '<div class="eqs">' + tex(bP, 'β<sub>' + esc(r.n) + '</sub> − (w<sub>T</sub><sup>P</sup>·1 + w<sub>F</sub><sup>P</sup>·0) = ' + fmt(r.b, 2) + ' − ' + fmt(rep.wT, 2) + ' = 0', true) + '</div>' +
+      '<p>The expected profit is <b class="' + ST[r.st].cls + '">' + smoney(tr.net1, N) + ' euro</b>, i.e., ' + pct(Math.abs(r.al)) + ' of the amount, which is exactly the mispricing ' + tex('|\\alpha_{' + A + '}|', '|α|') + ': a textbook arbitrage.</p>';
     el.innerHTML = h;
   }
 
@@ -472,7 +507,7 @@ const Core = (function () {
   themeBtn.addEventListener('click', function () { mode = modes[(modes.indexOf(mode) + 1) % 3]; applyTheme(); });
   applyTheme();
 
-  pickDefault(); buildControls(); draw();
+  typesetStatic(); pickDefault(); buildControls(); draw();
 })();
 </script>
 </body>
