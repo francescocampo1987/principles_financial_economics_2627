@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bond Cash Flows and Duration</title>
+<style>
+/* Concept: a teaching bench for bond valuation, read top to bottom like the lecture: define the bonds and see when their money arrives,
+   measure their duration and convexity, then shock the yield. Same visual language as the other course dashboards (Palatino headings, system sans for controls).
+   The five bond colours are a validated categorical set (light and dark), assigned to a bond when it is created and never repainted. */
+:root{
+  --bg:#f5f6f9; --surface:#ffffff; --surface2:#eef0f5; --fg:#1a1e2b; --muted:#566074; --line:#d8dce6; --grid:#e6e9f0;
+  --accent:#2c2c92; --on-accent:#ffffff; --warn-bg:#fff4e0; --warn-fg:#6b4200;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4;
+  --font-display:"Palatino Linotype",Palatino,"Book Antiqua","TeX Gyre Pagella",Georgia,serif;
+  --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10121a; --surface:#181b26; --surface2:#212533; --fg:#e8eaf3; --muted:#98a1b6; --line:#2e3346; --grid:#252a3a;
+    --accent:#9a9aff; --on-accent:#10121a; --warn-bg:#3a2d12; --warn-fg:#f3d79a;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10121a; --surface:#181b26; --surface2:#212533; --fg:#e8eaf3; --muted:#98a1b6; --line:#2e3346; --grid:#252a3a;
+  --accent:#9a9aff; --on-accent:#10121a; --warn-bg:#3a2d12; --warn-fg:#f3d79a;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-ui)}
+.wrap{max-width:1160px;margin:0 auto;padding-block:22px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+h1{margin:0;font:600 clamp(1.55rem,2.6vw,2.2rem)/1.12 var(--font-display);text-wrap:balance}
+.sub{margin:.35rem 0 0;color:var(--muted);max-width:70ch}
+h2{margin:0;font:600 1.2rem/1.25 var(--font-display)}
+h3{margin:18px 0 8px;font:600 1rem/1.3 var(--font-display)}
+.main{display:grid;gap:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.card-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin-bottom:12px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{cursor:default;opacity:.5}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:7px 12px;font-weight:600;font-size:.88rem}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.bonds{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.bond{border:1px solid var(--line);border-top:4px solid var(--c);border-radius:8px;padding:10px 12px 12px;display:grid;gap:8px;align-content:start;min-width:0}
+.bond-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.bond-head b{font:600 1.05rem var(--font-display)}
+.sw{display:inline-block;width:.75rem;height:.75rem;border-radius:3px;margin-right:.4rem;background:var(--c);vertical-align:-1px}
+.x{border:1px solid var(--line);background:var(--surface2);border-radius:6px;width:1.8rem;height:1.8rem;line-height:1;color:var(--muted)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fields label{display:grid;gap:2px;font-size:.75rem;color:var(--muted);align-content:end;min-width:0}
+.fields label.wide{grid-column:1/-1}
+input[type=number],select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-variant-numeric:tabular-nums}
+input.bad,select.bad{border-color:#d03b3b}
+.status{font-size:.84rem;color:var(--muted);font-variant-numeric:tabular-nums;min-height:2.6em}
+.status b{color:var(--fg)}
+.warn{background:var(--warn-bg);color:var(--warn-fg);border-radius:6px;padding:7px 9px;font-size:.82rem}
+.hint{font-size:.82rem;color:var(--muted);margin:0}
+.chartbox{position:relative;width:100%}
+svg.chart{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+svg.chart text{font-family:var(--font-ui);font-size:12px;fill:var(--muted)}
+svg.chart .ax-title{font-size:12.5px;fill:var(--fg)}
+svg.chart .val{font-size:11px;fill:var(--fg)}
+svg.chart .grid{stroke:var(--grid);stroke-width:1}
+svg.chart .axis{stroke:var(--muted);stroke-width:1}
+svg.chart .cross{stroke:var(--muted);stroke-width:1}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:.82rem;box-shadow:0 6px 18px rgba(0,0,0,.18);min-width:150px;max-width:260px;z-index:2;font-variant-numeric:tabular-nums}
+.tip .t{font-weight:700;margin-bottom:2px}
+.tip div{white-space:nowrap}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:.82rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .sw{margin:0}
+.key-solid,.key-light{display:inline-block;width:.75rem;height:.75rem;border-radius:3px;background:var(--muted)}
+.key-light{opacity:.45}
+.tablewrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{padding:8px 9px;text-align:right;border-bottom:1px solid var(--line);font-size:.9rem;white-space:nowrap}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl th{font-size:.74rem;color:var(--muted);font-weight:600;vertical-align:bottom}
+.tbl td small{display:block;color:var(--muted);font-size:.78rem}
+.tbl tr.total td{font-weight:700;border-top:2px solid var(--fg);border-bottom:0}
+.scroll{max-height:380px;overflow:auto}
+.scroll thead th{position:sticky;top:0;background:var(--surface)}
+.eqs{font-family:var(--font-display);font-size:1rem;background:var(--surface2);border-radius:8px;padding:10px 14px;margin:12px 0 0;line-height:2;overflow-x:auto;white-space:nowrap}
+details{margin-top:14px}
+summary{cursor:pointer;font-weight:600;font-size:.92rem}
+.row-ctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:end;margin:10px 0}
+.row-ctl label{display:grid;gap:3px;font-size:.8rem;color:var(--muted)}
+.row-ctl input,.row-ctl select{width:11rem}
+sub,sup{line-height:0}
+footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:86ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Bond cash flows and duration</h1>
+      <p class="sub">Define one or more bonds, see when their cash flows arrive, measure duration and convexity, and find out what happens to their prices when yields change.</p>
+    </div>
+    <button class="btn" id="theme" type="button" aria-label="Switch color theme">Theme: auto</button>
+  </header>
+
+  <div class="main">
+    <section class="card" aria-labelledby="h1b">
+      <div class="card-head">
+        <h2 id="h1b">1. Your bonds and their cash flows</h2>
+        <div class="btns">
+          <button class="btn" id="add" type="button">+ Add a bond</button>
+          <button class="btn" id="reset" type="button">Reset</button>
+        </div>
+      </div>
+      <div class="bonds" id="bonds"></div>
+      <h3>When does the money arrive?</h3>
+      <div class="chartbox" id="chartbox"><svg class="chart" id="cf" role="img" aria-label="Cash flows of the bonds over time"></svg><div class="tip" id="tip" hidden></div></div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <section class="card" aria-labelledby="h2b">
+      <div class="card-head"><h2 id="h2b">2. Duration and convexity</h2></div>
+      <div class="tablewrap"><table class="tbl" id="dur"></table></div>
+      <div class="eqs">
+        P = Σ<sub>k=1</sub><sup>n</sup> CF<sub>k</sub> / (1 + y/m)<sup>k</sup> &nbsp;&nbsp; with t<sub>k</sub> = k/m years and PV<sub>k</sub> = CF<sub>k</sub> / (1 + y/m)<sup>k</sup><br>
+        Macaulay duration: &nbsp; D<sub>M</sub> = Σ t<sub>k</sub> · PV<sub>k</sub> / P<br>
+        Modified duration: &nbsp; D<sub>mod</sub> = D<sub>M</sub> / (1 + y/m)<br>
+        Convexity: &nbsp; Conv = (1/P) · d²P/dy² = Σ t<sub>k</sub> (t<sub>k</sub> + 1/m) · PV<sub>k</sub> / [P · (1 + y/m)²]
+      </div>
+      <details id="calc">
+        <summary>Show the calculation, cash flow by cash flow</summary>
+        <div class="row-ctl"><label>Bond<select id="calcBond"></select></label></div>
+        <div class="tablewrap scroll"><table class="tbl" id="calcTbl"></table></div>
+        <div class="eqs" id="calcSum"></div>
+      </details>
+    </section>
+
+    <section class="card" aria-labelledby="h3b">
+      <div class="card-head"><h2 id="h3b">3. Price change after a change in yields</h2></div>
+      <div class="row-ctl">
+        <label>Change in yield Δy (percentage points)<input id="dy" type="number" step="0.25" value="1"></label>
+        <p class="hint" id="dyHint"></p>
+      </div>
+      <div class="tablewrap"><table class="tbl" id="chg"></table></div>
+      <div class="eqs">
+        Exact: &nbsp; ΔP/P = [P(y + Δy) − P(y)] / P(y)<br>
+        Duration only: &nbsp; ΔP/P ≈ − D<sub>mod</sub> · Δy<br>
+        Duration and convexity: &nbsp; ΔP/P ≈ − D<sub>mod</sub> · Δy + ½ · Conv · (Δy)²
+      </div>
+      <p class="hint" style="margin-top:8px">In the formulas Δy is a decimal: 1 percentage point = 0.01 = 100 basis points. Every bond receives the same change in its own yield.</p>
+    </section>
+  </div>
+  <footer>
+    Assumptions: the yield to maturity y is an annual rate compounded as often as the coupon is paid (m times a year); coupons are equally spaced and the bond is valued on a coupon date, just after any payment (no accrued interest); maturity is therefore a whole number of coupon periods; no default risk and no embedded options. A zero-coupon bond is a bond with a coupon rate of 0%.
+  </footer>
+</div>
+
+<script>
+/*CORE-START*/
+const Core = (function () {
+  'use strict';
+  // a bond: F par value, c annual coupon rate, m coupon payments per year, T maturity in years, y annual yield (rates in decimals)
+  function problem(b) {
+    if (!(b.F > 0) || !isFinite(b.F)) return { field: 'F', msg: 'The par value must be a positive number.' };
+    if (!(b.c >= 0 && b.c <= 1)) return { field: 'c', msg: 'The coupon rate must be between 0% and 100%.' };
+    if ([1, 2, 4, 12].indexOf(b.m) < 0) return { field: 'm', msg: 'Choose how many coupons are paid per year.' };
+    if (!(b.T > 0 && b.T <= 100)) return { field: 'T', msg: 'The maturity must be greater than 0 and at most 100 years.' };
+    const n = b.T * b.m;
+    if (Math.abs(n - Math.round(n)) > 1e-7 || Math.round(n) < 1) return { field: 'T', msg: 'With ' + b.m + ' payment' + (b.m > 1 ? 's' : '') + ' per year the maturity must be a multiple of ' + (b.m === 1 ? '1 year' : (b.m === 2 ? '0.5' : b.m === 4 ? '0.25' : '1/12') + ' years') + '.' };
+    if (!isFinite(b.y) || !(b.y > -0.5 && b.y <= 1)) return { field: 'y', msg: 'The yield must be above −50% and at most 100%.' };
+    return null;
+  }
+  function cashflows(b) {
+    const n = Math.round(b.T * b.m), C = b.F * b.c / b.m, out = [];
+    for (let k = 1; k <= n; k++) {
+      const par = k === n ? b.F : 0;
+      out.push({ k: k, t: k / b.m, coupon: C, par: par, cf: C + par });
+    }
+    return out;
+  }
+  function price(b, y) {
+    const i = (y === undefined ? b.y : y) / b.m;
+    return cashflows(b).reduce(function (s, f) { return s + f.cf / Math.pow(1 + i, f.k); }, 0);
+  }
+  function analyse(b) {
+    const i = b.y / b.m;
+    const rows = cashflows(b).map(function (f) {
+      const df = Math.pow(1 + i, -f.k), pv = f.cf * df;
+      return { k: f.k, t: f.t, coupon: f.coupon, par: f.par, cf: f.cf, df: df, pv: pv, tpv: f.t * pv, cpv: f.t * (f.t + 1 / b.m) * pv };
+    });
+    const sum = function (key) { return rows.reduce(function (s, r) { return s + r[key]; }, 0); };
+    const P = sum('pv'), tpv = sum('tpv'), cpv = sum('cpv'), mac = tpv / P;
+    return { rows: rows, price: P, sumTPV: tpv, sumCPV: cpv, macaulay: mac, modified: mac / (1 + i), convexity: cpv / (P * (1 + i) * (1 + i)) };
+  }
+  // price after the yield moves by dy: exact, and the first- and second-order approximations
+  function change(b, dy) {
+    const y1 = b.y + dy;
+    if (!isFinite(dy) || !(y1 > -0.5 && y1 <= 1.5)) return null;
+    const a = analyse(b), p1 = price(b, y1);
+    const lin = -a.modified * dy, quad = lin + 0.5 * a.convexity * dy * dy;
+    return { y0: b.y, y1: y1, p0: a.price, p1: p1, exact: p1 / a.price - 1, lin: lin, quad: quad, pLin: a.price * (1 + lin), pQuad: a.price * (1 + quad) };
+  }
+  return { problem: problem, cashflows: cashflows, price: price, analyse: analyse, change: change };
+})();
+/*CORE-END*/
+</script>
+
+<script>
+(function () {
+  'use strict';
+  // values shown in the inputs (rates in %); the first two are the bonds of the course exercise, the others come from the slides
+  var PRESETS = [
+    { F: 100, c: 6, m: 2, T: 2, y: 4 },
+    { F: 100, c: 0, m: 2, T: 2, y: 4 },
+    { F: 100, c: 4, m: 1, T: 5, y: 4 },
+    { F: 100, c: 1, m: 1, T: 5, y: 5 },
+    { F: 100, c: 10, m: 1, T: 5, y: 5 }
+  ];
+  var NAMES = ['A', 'B', 'C', 'D', 'E'], MAXN = 5;
+  var FREQ = { 1: 'Annual (1)', 2: 'Semiannual (2)', 4: 'Quarterly (4)', 12: 'Monthly (12)' };
+  var FREQW = { 1: 'annual', 2: 'semiannual', 4: 'quarterly', 12: 'monthly' };
+  var bonds = [], calcSlot = 0, dy = 1, times = [], flowsByTime = {}, geom = null;
+
+  function $(id) { return document.getElementById(id); }
+  function fmt(x, d) { var s = Number(x).toFixed(d); if (/^-0\.?0*$/.test(s)) s = s.slice(1); return s.replace('-', '−'); }
+  function sgn(x, d) { var s = fmt(x, d); return (/^−/.test(s) || Number(Number(x).toFixed(d)) === 0 ? '' : '+') + s; }
+  function money(x) { return fmt(x, 2); }
+  function yrs(t) { var r = Math.round(t * 100) / 100; return String(r) + (r === 1 ? ' year' : ' years'); }
+  function niceTicks(lo, hi, target) {
+    var span = hi - lo; if (!(span > 0)) return { ticks: [lo], dec: 0 };
+    var raw = span / (target || 6), p = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / p;
+    var step = (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * p, out = [];
+    for (var v = Math.ceil(lo / step - 1e-9) * step; v <= hi + 1e-9; v += step) out.push(Math.round(v / step) * step);
+    return { ticks: out, dec: Math.max(0, -Math.floor(Math.log10(step) + 1e-9)) };
+  }
+  function model(b) { return { F: b.F, c: b.c / 100, m: b.m, T: b.T, y: b.y / 100 }; }
+  function colour(b) { return 'var(--s' + (b.slot + 1) + ')'; }
+  function nameOf(b) { return 'Bond ' + NAMES[b.slot]; }
+  function make(slot) { var p = PRESETS[slot]; return { slot: slot, F: p.F, c: p.c, m: p.m, T: p.T, y: p.y }; }
+  function ordered() { return bonds.slice().sort(function (a, b) { return a.slot - b.slot; }); }
+  function valid() { return ordered().filter(function (b) { return !Core.problem(model(b)); }); }
+
+  /* ---------- bond cards ---------- */
+  function buildCards() {
+    var h = '';
+    ordered().forEach(function (b) {
+      var s = b.slot;
+      var num = function (key, label, step) { return '<label>' + label + '<input type="number" step="' + step + '" data-slot="' + s + '" data-key="' + key + '" id="' + key + s + '" value="' + b[key] + '" inputmode="decimal"></label>'; };
+      var opts = [1, 2, 4, 12].map(function (m) { return '<option value="' + m + '"' + (m === b.m ? ' selected' : '') + '>' + FREQ[m] + '</option>'; }).join('');
+      h += '<div class="bond" style="--c:' + colour(b) + '"><div class="bond-head"><b><span class="sw"></span>' + nameOf(b) + '</b>' +
+        '<button type="button" class="x" data-del="' + s + '" aria-label="Remove ' + nameOf(b) + '"' + (bonds.length <= 1 ? ' disabled' : '') + '>×</button></div>' +
+        '<div class="fields">' + num('F', 'Par value', 10) + num('c', 'Coupon rate (% a year)', 0.25) +
+        '<label class="wide">Coupon payments per year<select data-slot="' + s + '" data-key="m" id="m' + s + '">' + opts + '</select></label>' +
+        num('T', 'Maturity (years)', 0.5) + num('y', 'Yield to maturity (% a year)', 0.25) +
+        '</div><div class="status" id="st' + s + '"></div></div>';
+    });
+    $('bonds').innerHTML = h;
+    $('add').disabled = bonds.length >= MAXN;
+  }
+  function cardStatus() {
+    bonds.forEach(function (b) {
+      var el = $('st' + b.slot), bad = Core.problem(model(b));
+      ['F', 'c', 'm', 'T', 'y'].forEach(function (k) { $(k + b.slot).classList.toggle('bad', !!bad && bad.field === k); });
+      if (bad) { el.innerHTML = '<div class="warn">' + bad.msg + '</div>'; return; }
+      var a = Core.analyse(model(b)), diff = a.price - b.F, kind = Math.abs(diff) < 0.005 ? 'at par' : diff > 0 ? 'above par (premium)' : 'below par (discount)';
+      var C = b.F * b.c / 100 / b.m, n = a.rows.length;
+      el.innerHTML = 'Price <b>' + money(a.price) + '</b>, ' + kind + '<br>' + (C > 0 ? n + ' coupon' + (n > 1 ? 's' : '') + ' of ' + money(C) + ', then par at maturity' : 'zero coupon: one payment of ' + money(b.F));
+    });
+  }
+
+  /* ---------- cash-flow chart ---------- */
+  function barPath(x, y, w, h, r) {
+    r = Math.max(0, Math.min(r, w / 2, h));
+    return 'M' + x.toFixed(2) + ' ' + (y + h).toFixed(2) + 'V' + (y + r).toFixed(2) + 'Q' + x.toFixed(2) + ' ' + y.toFixed(2) + ' ' + (x + r).toFixed(2) + ' ' + y.toFixed(2) +
+      'H' + (x + w - r).toFixed(2) + 'Q' + (x + w).toFixed(2) + ' ' + y.toFixed(2) + ' ' + (x + w).toFixed(2) + ' ' + (y + r).toFixed(2) + 'V' + (y + h).toFixed(2) + 'Z';
+  }
+  function drawChart() {
+    var svg = $('cf'), list = valid(), W = Math.max(300, Math.round($('chartbox').clientWidth || 900)), H = W < 560 ? 300 : 360, ML = 54, MR = 12, MT = 22, MB = 46;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); $('tip').hidden = true;
+    if (!list.length) { svg.innerHTML = '<text class="ax-title" x="' + W / 2 + '" y="' + H / 2 + '" text-anchor="middle">Fix the inputs to see the cash flows.</text>'; $('legend').innerHTML = ''; geom = null; return; }
+    var flows = list.map(function (b) { return Core.cashflows(model(b)).filter(function (r) { return r.cf > 0; }); });   // dates with a payment
+    var tmax = Math.max.apply(null, list.map(function (b) { return b.T; })), maxM = Math.max.apply(null, list.map(function (b) { return b.m; }));
+    var cfMax = Math.max.apply(null, flows.map(function (f) { return Math.max.apply(null, f.map(function (r) { return r.cf; })); }));
+    var plotW = W - ML - MR, nB = list.length;
+    var slotPx = plotW / (tmax * maxM + 1);                                   // room for one payment date
+    var gap = slotPx / nB >= 5 ? 2 : 0.4;
+    var bw = Math.max(0.8, Math.min(24, (slotPx * 0.86 - gap * (nB - 1)) / nB)), cluster = nB * bw + (nB - 1) * gap;
+    var x1 = tmax * plotW / Math.max(plotW - cluster / 2 - 4, plotW * 0.5), y1 = cfMax * 1.12;
+    var sx = function (t) { return ML + t / x1 * plotW; }, sy = function (v) { return H - MB - v / y1 * (H - MT - MB); };
+    var out = '', tx = niceTicks(0, x1, W < 560 ? 5 : 10), ty = niceTicks(0, y1, 6);
+    ty.ticks.forEach(function (v) { out += '<line class="grid" x1="' + ML + '" y1="' + sy(v) + '" x2="' + (W - MR) + '" y2="' + sy(v) + '"/><text x="' + (ML - 8) + '" y="' + (sy(v) + 4) + '" text-anchor="end">' + fmt(v, ty.dec) + '</text>'; });
+    tx.ticks.forEach(function (v) { out += '<line class="axis" x1="' + sx(v) + '" y1="' + (H - MB) + '" x2="' + sx(v) + '" y2="' + (H - MB + 4) + '"/><text x="' + sx(v) + '" y="' + (H - MB + 18) + '" text-anchor="middle">' + fmt(v, tx.dec) + '</text>'; });
+    out += '<line class="axis" x1="' + ML + '" y1="' + (H - MB) + '" x2="' + (W - MR) + '" y2="' + (H - MB) + '"/>';
+    out += '<text class="ax-title" x="' + (ML + plotW / 2) + '" y="' + (H - 8) + '" text-anchor="middle">Time (years)</text>';
+    out += '<text class="ax-title" transform="rotate(-90 13 ' + (MT + (H - MT - MB) / 2) + ')" x="13" y="' + (MT + (H - MT - MB) / 2) + '" text-anchor="middle">Cash flow</text>';
+    var total = flows.reduce(function (s, f) { return s + f.length; }, 0), showVals = total <= 14 && bw >= 18;
+    flowsByTime = {}; times = [];
+    list.forEach(function (b, j) {                                // group the payments by date
+      flows[j].forEach(function (r) {
+        var key = r.t.toFixed(6);
+        if (!flowsByTime[key]) { flowsByTime[key] = { t: r.t, list: [] }; times.push(r.t); }
+        flowsByTime[key].list.push({ b: b, r: r });
+      });
+    });
+    times.forEach(function (t) {
+      // only the bonds paying on this date share the space, so a single payment sits exactly on its date
+      var here = flowsByTime[t.toFixed(6)].list;
+      here.forEach(function (o, j) {
+        var b = o.b, r = o.r, c = colour(b), x = sx(t) - (here.length * bw + (here.length - 1) * gap) / 2 + j * (bw + gap), top = sy(r.cf), base = sy(0);
+        if (r.par > 0 && r.coupon > 0) {        // final payment: par (light) below, last coupon (solid) on top, 2px surface gap
+          var pTop = sy(r.par), couponH = pTop - top, sep = couponH > 4 ? 2 : 0;
+          out += '<rect x="' + x.toFixed(2) + '" y="' + pTop.toFixed(2) + '" width="' + bw.toFixed(2) + '" height="' + Math.max(0, base - pTop).toFixed(2) + '" style="fill:' + c + ';opacity:.45"/>';
+          var h = Math.max(2, couponH - sep);
+          out += '<path d="' + barPath(x, pTop - sep - h, bw, h, 4) + '" style="fill:' + c + '"/>';
+        } else {
+          var hh = Math.max(1.5, base - top);
+          out += '<path d="' + barPath(x, base - hh, bw, hh, 4) + '" style="fill:' + c + (r.par > 0 ? ';opacity:.45' : '') + '"/>';
+        }
+        if (showVals) out += '<text class="val" x="' + (x + bw / 2).toFixed(2) + '" y="' + (top - 5).toFixed(2) + '" text-anchor="middle">' + fmt(r.cf, Math.abs(r.cf - Math.round(r.cf)) < 1e-9 ? 0 : 2) + '</text>';
+      });
+    });
+    times.sort(function (a, b) { return a - b; });
+    out += '<line class="cross" id="cross" x1="0" y1="' + MT + '" x2="0" y2="' + (H - MB) + '" style="visibility:hidden"/>';
+    out += '<rect id="hit" x="' + ML + '" y="' + MT + '" width="' + plotW + '" height="' + (H - MT - MB) + '" style="fill:transparent"/>';
+    svg.innerHTML = out;
+    geom = { W: W, H: H, ML: ML, plotW: plotW, x1: x1, sx: sx };
+    $('legend').innerHTML = list.map(function (b) { return '<span style="--c:' + colour(b) + '"><i class="sw"></i>' + nameOf(b) + ': ' + (b.c > 0 ? fmt(b.c, 2).replace(/\.?0+$/, '') + '% ' + FREQW[b.m] : 'zero coupon') + ', ' + yrs(b.T) + '</span>'; }).join('') +
+      '<span><i class="key-solid"></i>solid: coupon</span><span><i class="key-light"></i>light: repayment of par</span>';
+  }
+  function hover(e) {
+    if (!geom || !times.length) return;
+    var svg = $('cf'), r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * geom.W / r.width;
+    var t = (px - geom.ML) / geom.plotW * geom.x1, best = times[0];
+    for (var i = 1; i < times.length; i++) if (Math.abs(times[i] - t) < Math.abs(best - t)) best = times[i];
+    var cross = $('cross'), tip = $('tip');
+    if (Math.abs(geom.sx(best) - px) > 40) { tip.hidden = true; cross.style.visibility = 'hidden'; return; }
+    var d = flowsByTime[best.toFixed(6)], x = geom.sx(best);
+    cross.setAttribute('x1', x); cross.setAttribute('x2', x); cross.style.visibility = 'visible';
+    tip.innerHTML = '<div class="t">t = ' + yrs(d.t) + '</div>' + d.list.map(function (o) {
+      var parts = o.r.par > 0 && o.r.coupon > 0 ? ' (coupon ' + money(o.r.coupon) + ' + par ' + money(o.r.par) + ')' : o.r.par > 0 ? ' (par)' : ' (coupon)';
+      return '<div style="--c:' + colour(o.b) + '"><span class="sw"></span>' + nameOf(o.b) + ': <b>' + money(o.r.cf) + '</b>' + parts + '</div>';
+    }).join('');
+    tip.hidden = false;
+    var box = $('chartbox').clientWidth, sxPx = x * r.width / geom.W, w = tip.offsetWidth;
+    tip.style.left = Math.max(0, Math.min(box - w, sxPx + 12 + w > box ? sxPx - w - 12 : sxPx + 12)) + 'px';
+    tip.style.top = '8px';
+  }
+
+  /* ---------- duration, convexity, calculation ---------- */
+  function cell(b) { return '<td style="--c:' + colour(b) + '"><span class="sw"></span>' + nameOf(b) + '</td>'; }
+  function drawDuration() {
+    var h = '<thead><tr><th>Bond</th><th>Price P</th><th>Macaulay duration<br>D<sub>M</sub> (years)</th><th>Modified duration<br>D<sub>mod</sub></th><th>Convexity<br>Conv</th></tr></thead><tbody>';
+    ordered().forEach(function (b) {
+      if (Core.problem(model(b))) { h += '<tr>' + cell(b) + '<td colspan="4">fix the inputs of this bond</td></tr>'; return; }
+      var a = Core.analyse(model(b));
+      h += '<tr>' + cell(b) + '<td>' + money(a.price) + '</td><td>' + fmt(a.macaulay, 4) + '</td><td>' + fmt(a.modified, 4) + '</td><td>' + fmt(a.convexity, 4) + '</td></tr>';
+    });
+    $('dur').innerHTML = h + '</tbody>';
+  }
+  function drawCalc() {
+    var list = valid(), sel = $('calcBond');
+    sel.innerHTML = list.map(function (b) { return '<option value="' + b.slot + '">' + nameOf(b) + '</option>'; }).join('');
+    if (!list.length) { $('calcTbl').innerHTML = ''; $('calcSum').innerHTML = 'Fix the inputs to see the calculation.'; return; }
+    var b = list.filter(function (x) { return x.slot === calcSlot; })[0] || list[0];
+    calcSlot = b.slot; sel.value = String(b.slot);
+    var a = Core.analyse(model(b)), i = b.y / 100 / b.m;
+    var h = '<thead><tr><th>Payment k</th><th>Time t<sub>k</sub> (years)</th><th>Cash flow CF<sub>k</sub></th><th>Discount factor</th><th>Present value PV<sub>k</sub></th><th>t<sub>k</sub> · PV<sub>k</sub></th><th>t<sub>k</sub>(t<sub>k</sub> + 1/m) · PV<sub>k</sub></th></tr></thead><tbody>';
+    a.rows.filter(function (r) { return r.cf > 0; }).forEach(function (r) { h += '<tr><td>' + r.k + '</td><td>' + fmt(r.t, 4).replace(/\.?0+$/, '') + '</td><td>' + money(r.cf) + '</td><td>' + fmt(r.df, 6) + '</td><td>' + fmt(r.pv, 4) + '</td><td>' + fmt(r.tpv, 4) + '</td><td>' + fmt(r.cpv, 4) + '</td></tr>'; });
+    h += '<tr class="total"><td>Total</td><td></td><td></td><td></td><td>' + fmt(a.price, 4) + '</td><td>' + fmt(a.sumTPV, 4) + '</td><td>' + fmt(a.sumCPV, 4) + '</td></tr></tbody>';
+    $('calcTbl').innerHTML = h;
+    $('calcSum').innerHTML = 'y/m = ' + fmt(b.y, 2) + '% / ' + b.m + ' = ' + fmt(i * 100, 4) + '% per period<br>' +
+      'D<sub>M</sub> = ' + fmt(a.sumTPV, 4) + ' / ' + fmt(a.price, 4) + ' = <b>' + fmt(a.macaulay, 4) + ' years</b><br>' +
+      'D<sub>mod</sub> = ' + fmt(a.macaulay, 4) + ' / ' + fmt(1 + i, 6) + ' = <b>' + fmt(a.modified, 4) + '</b><br>' +
+      'Conv = ' + fmt(a.sumCPV, 4) + ' / (' + fmt(a.price, 4) + ' · ' + fmt(1 + i, 6) + '²) = <b>' + fmt(a.convexity, 4) + '</b>';
+  }
+
+  /* ---------- price change ---------- */
+  function drawChange() {
+    var el = $('chg'), ok = isFinite(dy);
+    $('dyHint').innerHTML = ok ? 'Yields ' + (dy > 0 ? 'rise' : dy < 0 ? 'fall' : 'do not move') + (dy ? ' by ' + fmt(Math.abs(dy) * 100, 0) + ' basis points' : '') + ' (Δy = ' + fmt(dy / 100, 4) + ').' : 'Type a number, for example 1 or −0.5.';
+    if (!ok) { el.innerHTML = ''; return; }
+    var h = '<thead><tr><th>Bond</th><th>Yield<br>before → after</th><th>Price<br>before</th><th>Exact<br>new price and change</th><th>Duration only<br>estimated price and change</th><th>Duration + convexity<br>estimated price and change</th></tr></thead><tbody>';
+    ordered().forEach(function (b) {
+      if (Core.problem(model(b))) { h += '<tr>' + cell(b) + '<td colspan="5">fix the inputs of this bond</td></tr>'; return; }
+      var c = Core.change(model(b), dy / 100);
+      if (!c) { h += '<tr>' + cell(b) + '<td colspan="5">this change takes the yield out of the allowed range (above −50%)</td></tr>'; return; }
+      var col = function (p, rel, err) { return '<td>' + money(p) + '<small>' + sgn(rel * 100, 3) + '% (' + sgn(p - c.p0, 2) + ')</small>' + (err === undefined ? '' : '<small>error ' + sgn(err, 3) + '</small>') + '</td>'; };
+      h += '<tr>' + cell(b) + '<td>' + fmt(c.y0 * 100, 2) + '% → ' + fmt(c.y1 * 100, 2) + '%</td><td>' + money(c.p0) + '</td>' + col(c.p1, c.exact) + col(c.pLin, c.lin, c.pLin - c.p1) + col(c.pQuad, c.quad, c.pQuad - c.p1) + '</tr>';
+    });
+    el.innerHTML = h + '</tbody>';
+  }
+
+  function draw() { cardStatus(); drawChart(); drawDuration(); drawCalc(); drawChange(); }
+
+  /* ---------- events ---------- */
+  function bySlot(s) { return bonds.filter(function (b) { return b.slot === s; })[0]; }
+  function onInput(e) {
+    var s = e.target.getAttribute('data-slot'), k = e.target.getAttribute('data-key'); if (s === null || !k) return;
+    var b = bySlot(+s); if (!b) return;
+    b[k] = k === 'm' ? parseInt(e.target.value, 10) : parseFloat(e.target.value);
+    draw();
+  }
+  $('bonds').addEventListener('input', onInput);
+  $('bonds').addEventListener('change', onInput);
+  $('bonds').addEventListener('click', function (e) {
+    var t = e.target.closest('button[data-del]'); if (!t || bonds.length <= 1) return;
+    var s = +t.getAttribute('data-del'); bonds = bonds.filter(function (b) { return b.slot !== s; }); buildCards(); draw();
+  });
+  $('add').addEventListener('click', function () {
+    if (bonds.length >= MAXN) return;
+    for (var s = 0; s < MAXN; s++) if (!bySlot(s)) { bonds.push(make(s)); break; }
+    buildCards(); draw();
+  });
+  $('reset').addEventListener('click', function () { bonds = [make(0)]; dy = 1; $('dy').value = '1'; calcSlot = 0; buildCards(); draw(); });
+  $('calcBond').addEventListener('change', function (e) { calcSlot = +e.target.value; drawCalc(); });
+  $('dy').addEventListener('input', function (e) { dy = parseFloat(e.target.value); drawChange(); });
+  $('cf').addEventListener('pointermove', hover);
+  $('cf').addEventListener('pointerdown', hover);
+  $('cf').addEventListener('pointerleave', function () { $('tip').hidden = true; var c = $('cross'); if (c) c.style.visibility = 'hidden'; });
+  var lastW = 0, timer = null;
+  window.addEventListener('resize', function () { clearTimeout(timer); timer = setTimeout(function () { var w = $('chartbox').clientWidth; if (w !== lastW) { lastW = w; drawChart(); } }, 120); });
+
+  var themeBtn = $('theme'), modes = ['auto', 'light', 'dark'], mode = 'auto';
+  try { var saved = localStorage.getItem('ef-theme'); if (saved && modes.indexOf(saved) >= 0) mode = saved; } catch (err) { /* storage unavailable */ }
+  function applyTheme() {
+    if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+    themeBtn.textContent = 'Theme: ' + mode;
+    try { localStorage.setItem('ef-theme', mode); } catch (err) { /* storage unavailable */ }
+  }
+  themeBtn.addEventListener('click', function () { mode = modes[(modes.indexOf(mode) + 1) % 3]; applyTheme(); });
+  applyTheme();
+
+  bonds = [make(0)];
+  buildCards(); draw(); lastW = $('chartbox').clientWidth;
+})();
+</script>
+</body>
+</html>
