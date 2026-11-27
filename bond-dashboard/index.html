@@ -146,20 +146,19 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:86ch}
       <div class="card-head"><h2 id="h2b">2. Duration and convexity</h2></div>
       <div class="tablewrap"><table class="tbl" id="dur"></table></div>
       <div class="formulas">
-        <div class="f"><div class="f-name">Present value of a cash flow</div><div class="f-eq"><span data-tex="PV_k=\frac{CF_k}{\left(1+\frac{y}{m}\right)^{m\,t_k}}" data-display>PV<sub>k</sub> = CF<sub>k</sub> / (1 + y/m)<sup>m·t<sub>k</sub></sup></span></div></div>
-        <div class="f"><div class="f-name">Price</div><div class="f-eq"><span data-tex="P=\sum_{k=1}^{n} PV_k=\sum_{k=1}^{n}\frac{CF_k}{\left(1+\frac{y}{m}\right)^{m\,t_k}}" data-display>P = Σ PV<sub>k</sub> = Σ CF<sub>k</sub> / (1 + y/m)<sup>m·t<sub>k</sub></sup></span></div></div>
+        <div class="f"><div class="f-name">Present value of a cash flow</div><div class="f-eq"><span data-tex="PV_k=\frac{CF_k}{\left(1+y\right)^{t_k}}" data-display>PV<sub>k</sub> = CF<sub>k</sub> / (1 + y)<sup>t<sub>k</sub></sup></span></div></div>
+        <div class="f"><div class="f-name">Price</div><div class="f-eq"><span data-tex="P=\sum_{k=1}^{n} PV_k=\sum_{k=1}^{n}\frac{CF_k}{\left(1+y\right)^{t_k}}" data-display>P = Σ PV<sub>k</sub> = Σ CF<sub>k</sub> / (1 + y)<sup>t<sub>k</sub></sup></span></div></div>
         <div class="f"><div class="f-name">Macaulay duration</div><div class="f-eq"><span data-tex="D_{\text{M}}=\frac{\displaystyle\sum_{k=1}^{n} t_k\,PV_k}{P}" data-display>D<sub>M</sub> = Σ t<sub>k</sub> · PV<sub>k</sub> / P</span></div></div>
-        <div class="f"><div class="f-name">Modified duration</div><div class="f-eq"><span data-tex="D_{\text{mod}}=\frac{D_{\text{M}}}{1+\dfrac{y}{m}}" data-display>D<sub>mod</sub> = D<sub>M</sub> / (1 + y/m)</span></div></div>
-        <div class="f"><div class="f-name">Convexity</div><div class="f-eq"><span data-tex="\text{Conv}=\frac{1}{P}\,\frac{d^2P}{dy^2}=\frac{\displaystyle\sum_{k=1}^{n} t_k\left(t_k+\tfrac{1}{m}\right)PV_k}{P\left(1+\dfrac{y}{m}\right)^{2}}" data-display>Conv = (1/P) · d²P/dy² = Σ t<sub>k</sub> (t<sub>k</sub> + 1/m) · PV<sub>k</sub> / [P · (1 + y/m)²]</span></div></div>
+        <div class="f"><div class="f-name">Modified duration</div><div class="f-eq"><span data-tex="D_{\text{mod}}=\frac{D_{\text{M}}}{1+y}" data-display>D<sub>mod</sub> = D<sub>M</sub> / (1 + y)</span></div></div>
+        <div class="f"><div class="f-name">Convexity</div><div class="f-eq"><span data-tex="\text{Conv}=\frac{1}{P}\,\frac{d^2P}{dy^2}=\frac{\displaystyle\sum_{k=1}^{n} t_k\left(t_k+1\right)PV_k}{P\left(1+y\right)^{2}}" data-display>Conv = (1/P) · d²P/dy² = Σ t<sub>k</sub> (t<sub>k</sub> + 1) · PV<sub>k</sub> / [P · (1 + y)²]</span></div></div>
       </div>
       <p class="where-title">where</p>
       <dl class="where">
         <dt><span data-tex="t_k">t<sub>k</sub></span></dt><dd>number of years between the valuation date and the date on which the cash flow <span data-tex="CF_k">CF<sub>k</sub></span> is paid</dd>
-        <dt><span data-tex="CF_k">CF<sub>k</sub></span></dt><dd>cash flow number <span data-tex="k"><i>k</i></span>: the coupon, plus the par value at maturity</dd>
+        <dt><span data-tex="CF_k">CF<sub>k</sub></span></dt><dd>cash flow number <span data-tex="k"><i>k</i></span>: the coupon (annual coupon rate × par value, divided by the number of payments per year), plus the par value at maturity</dd>
         <dt><span data-tex="PV_k">PV<sub>k</sub></span></dt><dd>present value of the cash flow <span data-tex="CF_k">CF<sub>k</sub></span>: what it is worth on the valuation date, once discounted over <span data-tex="t_k">t<sub>k</sub></span> years at the yield to maturity</dd>
         <dt><span data-tex="n"><i>n</i></span></dt><dd>number of cash flows</dd>
-        <dt><span data-tex="y"><i>y</i></span></dt><dd>annual yield to maturity, as a decimal</dd>
-        <dt><span data-tex="m"><i>m</i></span></dt><dd>number of coupon payments (and of compounding periods) per year</dd>
+        <dt><span data-tex="y"><i>y</i></span></dt><dd>annual yield to maturity, compounded annually, as a decimal</dd>
       </dl>
       <details id="calc">
         <summary>Show the calculation, cash flow by cash flow</summary>
@@ -185,7 +184,7 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:86ch}
     </section>
   </div>
   <footer>
-    Assumptions: the yield to maturity <span data-tex="y">y</span> is an annual rate compounded as often as the coupon is paid (<span data-tex="m">m</span> times a year); coupons are equally spaced and the bond is valued on a coupon date, just after any payment (no accrued interest); maturity is therefore a whole number of coupon periods; no default risk and no embedded options. A zero-coupon bond is a bond with a coupon rate of 0%.
+    Assumptions: the yield to maturity <span data-tex="y">y</span> is compounded annually, whatever the coupon frequency: a cash flow paid after <span data-tex="t">t</span> years is discounted by <span data-tex="(1+y)^{t}">(1 + y)<sup>t</sup></span>; coupons are equally spaced and the bond is valued on a coupon date, just after any payment (no accrued interest); maturity is therefore a whole number of coupon periods; no default risk and no embedded options. A zero-coupon bond is a bond with a coupon rate of 0%.
   </footer>
 </div>
 
@@ -193,7 +192,7 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:86ch}
 /*CORE-START*/
 const Core = (function () {
   'use strict';
-  // a bond: F par value, c annual coupon rate, m coupon payments per year, T maturity in years, y annual yield (rates in decimals)
+  // a bond: F par value, c annual coupon rate, m coupon payments per year, T maturity in years, y annual yield compounded annually (rates in decimals)
   function problem(b) {
     if (!(b.F > 0) || !isFinite(b.F)) return { field: 'F', msg: 'The par value must be a positive number.' };
     if (!(b.c >= 0 && b.c <= 1)) return { field: 'c', msg: 'The coupon rate must be between 0% and 100%.' };
@@ -213,18 +212,18 @@ const Core = (function () {
     return out;
   }
   function price(b, y) {
-    const i = (y === undefined ? b.y : y) / b.m;
-    return cashflows(b).reduce(function (s, f) { return s + f.cf / Math.pow(1 + i, f.k); }, 0);
+    const r = y === undefined ? b.y : y;
+    return cashflows(b).reduce(function (s, f) { return s + f.cf / Math.pow(1 + r, f.t); }, 0);
   }
   function analyse(b) {
-    const i = b.y / b.m;
+    const g = 1 + b.y;
     const rows = cashflows(b).map(function (f) {
-      const df = Math.pow(1 + i, -f.k), pv = f.cf * df;
-      return { k: f.k, t: f.t, coupon: f.coupon, par: f.par, cf: f.cf, df: df, pv: pv, tpv: f.t * pv, cpv: f.t * (f.t + 1 / b.m) * pv };
+      const df = Math.pow(g, -f.t), pv = f.cf * df;
+      return { k: f.k, t: f.t, coupon: f.coupon, par: f.par, cf: f.cf, df: df, pv: pv, tpv: f.t * pv, cpv: f.t * (f.t + 1) * pv };
     });
     const sum = function (key) { return rows.reduce(function (s, r) { return s + r[key]; }, 0); };
     const P = sum('pv'), tpv = sum('tpv'), cpv = sum('cpv'), mac = tpv / P;
-    return { rows: rows, price: P, sumTPV: tpv, sumCPV: cpv, macaulay: mac, modified: mac / (1 + i), convexity: cpv / (P * (1 + i) * (1 + i)) };
+    return { rows: rows, price: P, sumTPV: tpv, sumCPV: cpv, macaulay: mac, modified: mac / g, convexity: cpv / (P * g * g) };
   }
   // price after the yield moves by dy: exact, and the first- and second-order approximations
   function change(b, dy) {
@@ -410,22 +409,20 @@ const Core = (function () {
     if (!list.length) { $('calcTbl').innerHTML = ''; $('calcSum').innerHTML = 'Fix the inputs to see the calculation.'; return; }
     var b = list.filter(function (x) { return x.slot === calcSlot; })[0] || list[0];
     calcSlot = b.slot; sel.value = String(b.slot);
-    var a = Core.analyse(model(b)), i = b.y / 100 / b.m;
+    var a = Core.analyse(model(b)), g = 1 + b.y / 100;
     var h = '<thead><tr><th>Cash flow<br>' + tex('k', 'k') + '</th><th>Time (years)<br>' + tex('t_k', 't<sub>k</sub>') + '</th><th>Amount<br>' + tex('CF_k', 'CF<sub>k</sub>') + '</th>' +
-      '<th>Discount factor<br>' + tex('\\left(1+\\frac{y}{m}\\right)^{-m\\,t_k}', '(1 + y/m)<sup>−m·t<sub>k</sub></sup>') + '</th><th>Present value<br>' + tex('PV_k', 'PV<sub>k</sub>') + '</th>' +
-      '<th>Weighted by time<br>' + tex('t_k\\,PV_k', 't<sub>k</sub> · PV<sub>k</sub>') + '</th><th>For convexity<br>' + tex('t_k\\left(t_k+\\frac{1}{m}\\right)PV_k', 't<sub>k</sub>(t<sub>k</sub> + 1/m) · PV<sub>k</sub>') + '</th></tr></thead><tbody>';
+      '<th>Discount factor<br>' + tex('\\left(1+y\\right)^{-t_k}', '(1 + y)<sup>−t<sub>k</sub></sup>') + '</th><th>Present value<br>' + tex('PV_k', 'PV<sub>k</sub>') + '</th>' +
+      '<th>Weighted by time<br>' + tex('t_k\\,PV_k', 't<sub>k</sub> · PV<sub>k</sub>') + '</th><th>For convexity<br>' + tex('t_k\\left(t_k+1\\right)PV_k', 't<sub>k</sub>(t<sub>k</sub> + 1) · PV<sub>k</sub>') + '</th></tr></thead><tbody>';
     a.rows.filter(function (r) { return r.cf > 0; }).forEach(function (r, j) { h += '<tr><td>' + (j + 1) + '</td><td>' + fmt(r.t, 4).replace(/\.?0+$/, '') + '</td><td>' + money(r.cf) + '</td><td>' + fmt(r.df, 6) + '</td><td>' + fmt(r.pv, 4) + '</td><td>' + fmt(r.tpv, 4) + '</td><td>' + fmt(r.cpv, 4) + '</td></tr>'; });
     h += '<tr class="total"><td>Total</td><td></td><td></td><td></td><td>' + fmt(a.price, 4) + '</td><td>' + fmt(a.sumTPV, 4) + '</td><td>' + fmt(a.sumCPV, 4) + '</td></tr></tbody>';
     $('calcTbl').innerHTML = h;
-    var q = fmt(1 + i, 6), P = fmt(a.price, 4);
+    var q = fmt(g, 4), P = fmt(a.price, 4);
     var lines = [
-      '\\frac{y}{m}&=\\frac{' + tn(fmt(b.y, 2) + '%') + '}{' + b.m + '}=' + tn(fmt(i * 100, 4) + '%') + '\\ \\text{per period}',
       'D_{\\text{M}}&=\\frac{\\sum_k t_k\\,PV_k}{P}=\\frac{' + tn(fmt(a.sumTPV, 4)) + '}{' + tn(P) + '}=\\mathbf{' + tn(fmt(a.macaulay, 4)) + '}\\ \\text{years}',
-      'D_{\\text{mod}}&=\\frac{D_{\\text{M}}}{1+y/m}=\\frac{' + tn(fmt(a.macaulay, 4)) + '}{' + tn(q) + '}=\\mathbf{' + tn(fmt(a.modified, 4)) + '}',
+      'D_{\\text{mod}}&=\\frac{D_{\\text{M}}}{1+y}=\\frac{' + tn(fmt(a.macaulay, 4)) + '}{' + tn(q) + '}=\\mathbf{' + tn(fmt(a.modified, 4)) + '}',
       '\\text{Conv}&=\\frac{' + tn(fmt(a.sumCPV, 4)) + '}{' + tn(P) + '\\times ' + tn(q) + '^{2}}=\\mathbf{' + tn(fmt(a.convexity, 4)) + '}'
     ];
-    var plain = 'y/m = ' + fmt(b.y, 2) + '% / ' + b.m + ' = ' + fmt(i * 100, 4) + '% per period<br>' +
-      'D<sub>M</sub> = ' + fmt(a.sumTPV, 4) + ' / ' + P + ' = <b>' + fmt(a.macaulay, 4) + ' years</b><br>' +
+    var plain = 'D<sub>M</sub> = ' + fmt(a.sumTPV, 4) + ' / ' + P + ' = <b>' + fmt(a.macaulay, 4) + ' years</b><br>' +
       'D<sub>mod</sub> = ' + fmt(a.macaulay, 4) + ' / ' + q + ' = <b>' + fmt(a.modified, 4) + '</b><br>' +
       'Conv = ' + fmt(a.sumCPV, 4) + ' / (' + P + ' · ' + q + '²) = <b>' + fmt(a.convexity, 4) + '</b>';
     $('calcSum').innerHTML = tex('\\begin{aligned}' + lines.join('\\\\[8pt]') + '\\end{aligned}', plain, true);
