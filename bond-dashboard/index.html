@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bond Cash Flows and Duration</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css" integrity="sha512-aOFyMMzZF7l7ei3vOKgQiRhZnYqk9YC/uMzl4T0j5N5D3Kul+QAFU8ssENDRMAqr/lxDOjMF69dSYJ8HYqY+WQ==" crossorigin="anonymous" referrerpolicy="no-referrer">
 <style>
 /* Concept: a teaching bench for bond valuation, read top to bottom like the lecture: define the bonds and see when their money arrives,
    measure their duration and convexity, then shock the yield. Same visual language as the other course dashboards (Palatino headings, system sans for controls).
@@ -89,13 +90,29 @@ svg.chart .cross{stroke:var(--muted);stroke-width:1}
 .tbl tr.total td{font-weight:700;border-top:2px solid var(--fg);border-bottom:0}
 .scroll{max-height:380px;overflow:auto}
 .scroll thead th{position:sticky;top:0;background:var(--surface)}
-.eqs{font-family:var(--font-display);font-size:1rem;background:var(--surface2);border-radius:8px;padding:10px 14px;margin:12px 0 0;line-height:2;overflow-x:auto;white-space:nowrap}
+.eqs{background:var(--surface2);border-radius:8px;padding:10px 16px;margin:12px 0 0;overflow-x:auto;overflow-y:hidden}
+.katex{font-size:1.12em;text-transform:none;letter-spacing:normal;position:relative}
+.eqs .katex-display{margin:0;padding:4px 0;text-align:left}
+.eqs .katex-display>.katex{text-align:left}
+.formulas{background:var(--surface2);border-radius:8px;padding:4px 16px;margin-top:14px}
+.f{display:grid;grid-template-columns:12rem minmax(0,1fr);gap:4px 16px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.f:last-child{border-bottom:0}
+.f-name{font-weight:600;font-size:.9rem}
+.f-eq{overflow-x:auto;overflow-y:hidden;padding:3px 0}
+.f-eq .katex-display{margin:0;text-align:left}
+.f-eq .katex-display>.katex{text-align:left}
+.where-title{margin:14px 0 6px;font-size:.9rem;font-weight:600}
+.where{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 14px;margin:0;font-size:.9rem}
+.where dt{text-align:right;min-width:2.6rem}
+.where dd{margin:0;align-self:center}
+@media (max-width:640px){.f{grid-template-columns:minmax(0,1fr)}.f-eq .katex{font-size:1em}.eqs .katex{font-size:.92em}.eqs{padding:10px 12px}.formulas{padding:4px 12px}}
 details{margin-top:14px}
 summary{cursor:pointer;font-weight:600;font-size:.92rem}
 .row-ctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:end;margin:10px 0}
 .row-ctl label{display:grid;gap:3px;font-size:.8rem;color:var(--muted)}
 .row-ctl input,.row-ctl select{width:11rem}
 sub,sup{line-height:0}
+.tbl th .katex{font-size:1.18em}
 footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:86ch}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -128,12 +145,21 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:86ch}
     <section class="card" aria-labelledby="h2b">
       <div class="card-head"><h2 id="h2b">2. Duration and convexity</h2></div>
       <div class="tablewrap"><table class="tbl" id="dur"></table></div>
-      <div class="eqs">
-        P = Σ<sub>k=1</sub><sup>n</sup> CF<sub>k</sub> / (1 + y/m)<sup>k</sup> &nbsp;&nbsp; with t<sub>k</sub> = k/m years and PV<sub>k</sub> = CF<sub>k</sub> / (1 + y/m)<sup>k</sup><br>
-        Macaulay duration: &nbsp; D<sub>M</sub> = Σ t<sub>k</sub> · PV<sub>k</sub> / P<br>
-        Modified duration: &nbsp; D<sub>mod</sub> = D<sub>M</sub> / (1 + y/m)<br>
-        Convexity: &nbsp; Conv = (1/P) · d²P/dy² = Σ t<sub>k</sub> (t<sub>k</sub> + 1/m) · PV<sub>k</sub> / [P · (1 + y/m)²]
+      <div class="formulas">
+        <div class="f"><div class="f-name">Price</div><div class="f-eq"><span data-tex="P=\sum_{k=1}^{n} PV_k=\sum_{k=1}^{n}\frac{CF_k}{\left(1+\frac{y}{m}\right)^{m\,t_k}}" data-display>P = Σ PV<sub>k</sub> = Σ CF<sub>k</sub> / (1 + y/m)<sup>m·t<sub>k</sub></sup></span></div></div>
+        <div class="f"><div class="f-name">Macaulay duration</div><div class="f-eq"><span data-tex="D_{\text{M}}=\frac{\displaystyle\sum_{k=1}^{n} t_k\,PV_k}{P}" data-display>D<sub>M</sub> = Σ t<sub>k</sub> · PV<sub>k</sub> / P</span></div></div>
+        <div class="f"><div class="f-name">Modified duration</div><div class="f-eq"><span data-tex="D_{\text{mod}}=\frac{D_{\text{M}}}{1+\dfrac{y}{m}}" data-display>D<sub>mod</sub> = D<sub>M</sub> / (1 + y/m)</span></div></div>
+        <div class="f"><div class="f-name">Convexity</div><div class="f-eq"><span data-tex="\text{Conv}=\frac{1}{P}\,\frac{d^2P}{dy^2}=\frac{\displaystyle\sum_{k=1}^{n} t_k\left(t_k+\tfrac{1}{m}\right)PV_k}{P\left(1+\dfrac{y}{m}\right)^{2}}" data-display>Conv = (1/P) · d²P/dy² = Σ t<sub>k</sub> (t<sub>k</sub> + 1/m) · PV<sub>k</sub> / [P · (1 + y/m)²]</span></div></div>
       </div>
+      <p class="where-title">where</p>
+      <dl class="where">
+        <dt><span data-tex="t_k">t<sub>k</sub></span></dt><dd>number of years between the valuation date and the date on which the cash flow <span data-tex="CF_k">CF<sub>k</sub></span> is paid</dd>
+        <dt><span data-tex="CF_k">CF<sub>k</sub></span></dt><dd>cash flow number <span data-tex="k"><i>k</i></span>: the coupon, plus the par value at maturity</dd>
+        <dt><span data-tex="PV_k">PV<sub>k</sub></span></dt><dd>its present value, that is, the <span data-tex="k"><i>k</i></span>-th term of the sum in the price formula</dd>
+        <dt><span data-tex="n"><i>n</i></span></dt><dd>number of cash flows</dd>
+        <dt><span data-tex="y"><i>y</i></span></dt><dd>annual yield to maturity, as a decimal</dd>
+        <dt><span data-tex="m"><i>m</i></span></dt><dd>number of coupon payments (and of compounding periods) per year</dd>
+      </dl>
       <details id="calc">
         <summary>Show the calculation, cash flow by cash flow</summary>
         <div class="row-ctl"><label>Bond<select id="calcBond"></select></label></div>
@@ -149,16 +175,16 @@ footer{margin-top:22px;color:var(--muted);font-size:.85rem;max-width:86ch}
         <p class="hint" id="dyHint"></p>
       </div>
       <div class="tablewrap"><table class="tbl" id="chg"></table></div>
-      <div class="eqs">
-        Exact: &nbsp; ΔP/P = [P(y + Δy) − P(y)] / P(y)<br>
-        Duration only: &nbsp; ΔP/P ≈ − D<sub>mod</sub> · Δy<br>
-        Duration and convexity: &nbsp; ΔP/P ≈ − D<sub>mod</sub> · Δy + ½ · Conv · (Δy)²
+      <div class="formulas">
+        <div class="f"><div class="f-name">Exact</div><div class="f-eq"><span data-tex="\frac{\Delta P}{P}=\frac{P(y+\Delta y)-P(y)}{P(y)}" data-display>ΔP/P = [P(y + Δy) − P(y)] / P(y)</span></div></div>
+        <div class="f"><div class="f-name">Duration only</div><div class="f-eq"><span data-tex="\frac{\Delta P}{P}\approx -D_{\text{mod}}\,\Delta y" data-display>ΔP/P ≈ − D<sub>mod</sub> · Δy</span></div></div>
+        <div class="f"><div class="f-name">Duration and convexity</div><div class="f-eq"><span data-tex="\frac{\Delta P}{P}\approx -D_{\text{mod}}\,\Delta y+\frac{1}{2}\,\text{Conv}\,(\Delta y)^2" data-display>ΔP/P ≈ − D<sub>mod</sub> · Δy + ½ · Conv · (Δy)²</span></div></div>
       </div>
-      <p class="hint" style="margin-top:8px">In the formulas Δy is a decimal: 1 percentage point = 0.01 = 100 basis points. Every bond receives the same change in its own yield.</p>
+      <p class="hint" style="margin-top:8px">In the formulas <span data-tex="\Delta y">Δy</span> is a decimal: 1 percentage point = 0.01 = 100 basis points. Every bond receives the same change in its own yield.</p>
     </section>
   </div>
   <footer>
-    Assumptions: the yield to maturity y is an annual rate compounded as often as the coupon is paid (m times a year); coupons are equally spaced and the bond is valued on a coupon date, just after any payment (no accrued interest); maturity is therefore a whole number of coupon periods; no default risk and no embedded options. A zero-coupon bond is a bond with a coupon rate of 0%.
+    Assumptions: the yield to maturity <span data-tex="y">y</span> is an annual rate compounded as often as the coupon is paid (<span data-tex="m">m</span> times a year); coupons are equally spaced and the bond is valued on a coupon date, just after any payment (no accrued interest); maturity is therefore a whole number of coupon periods; no default risk and no embedded options. A zero-coupon bond is a bond with a coupon rate of 0%.
   </footer>
 </div>
 
@@ -212,6 +238,7 @@ const Core = (function () {
 /*CORE-END*/
 </script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" integrity="sha512-UPFOadao2nEorjtjl0xUTtN3w20Ja143UPEU6EyJ1mi5MB2bDtMkiWmqGDqi47xNLB5z1dy31GKJDEWhjUJFiQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 (function () {
   'use strict';
@@ -229,6 +256,18 @@ const Core = (function () {
   var bonds = [], calcSlot = 0, dy = 1, times = [], flowsByTime = {}, geom = null;
 
   function $(id) { return document.getElementById(id); }
+  // formulas are typeset with KaTeX (LaTeX syntax); if the library cannot be loaded, the plain version is shown instead
+  function tex(src, plain, display) {
+    return window.katex ? window.katex.renderToString(src, { displayMode: !!display, throwOnError: false }) : plain;
+  }
+  function typesetStatic() {
+    if (!window.katex) return;
+    document.querySelectorAll('[data-tex]').forEach(function (el) {
+      window.katex.render(el.getAttribute('data-tex'), el, { displayMode: el.hasAttribute('data-display'), throwOnError: false });
+    });
+  }
+  // a formatted number or percentage, made safe for LaTeX
+  function tn(s) { return String(s).replace(/−/g, '-').replace(/%/g, '\\%'); }
   function fmt(x, d) { var s = Number(x).toFixed(d); if (/^-0\.?0*$/.test(s)) s = s.slice(1); return s.replace('-', '−'); }
   function sgn(x, d) { var s = fmt(x, d); return (/^−/.test(s) || Number(Number(x).toFixed(d)) === 0 ? '' : '+') + s; }
   function money(x) { return fmt(x, 2); }
@@ -356,7 +395,7 @@ const Core = (function () {
   /* ---------- duration, convexity, calculation ---------- */
   function cell(b) { return '<td style="--c:' + colour(b) + '"><span class="sw"></span>' + nameOf(b) + '</td>'; }
   function drawDuration() {
-    var h = '<thead><tr><th>Bond</th><th>Price P</th><th>Macaulay duration<br>D<sub>M</sub> (years)</th><th>Modified duration<br>D<sub>mod</sub></th><th>Convexity<br>Conv</th></tr></thead><tbody>';
+    var h = '<thead><tr><th>Bond</th><th>Price<br>' + tex('P', 'P') + '</th><th>Macaulay duration<br>' + tex('D_{\\text{M}}', 'D<sub>M</sub>') + ' (years)</th><th>Modified duration<br>' + tex('D_{\\text{mod}}', 'D<sub>mod</sub>') + '</th><th>Convexity<br>' + tex('\\text{Conv}', 'Conv') + '</th></tr></thead><tbody>';
     ordered().forEach(function (b) {
       if (Core.problem(model(b))) { h += '<tr>' + cell(b) + '<td colspan="4">fix the inputs of this bond</td></tr>'; return; }
       var a = Core.analyse(model(b));
@@ -371,20 +410,30 @@ const Core = (function () {
     var b = list.filter(function (x) { return x.slot === calcSlot; })[0] || list[0];
     calcSlot = b.slot; sel.value = String(b.slot);
     var a = Core.analyse(model(b)), i = b.y / 100 / b.m;
-    var h = '<thead><tr><th>Payment k</th><th>Time t<sub>k</sub> (years)</th><th>Cash flow CF<sub>k</sub></th><th>Discount factor</th><th>Present value PV<sub>k</sub></th><th>t<sub>k</sub> · PV<sub>k</sub></th><th>t<sub>k</sub>(t<sub>k</sub> + 1/m) · PV<sub>k</sub></th></tr></thead><tbody>';
-    a.rows.filter(function (r) { return r.cf > 0; }).forEach(function (r) { h += '<tr><td>' + r.k + '</td><td>' + fmt(r.t, 4).replace(/\.?0+$/, '') + '</td><td>' + money(r.cf) + '</td><td>' + fmt(r.df, 6) + '</td><td>' + fmt(r.pv, 4) + '</td><td>' + fmt(r.tpv, 4) + '</td><td>' + fmt(r.cpv, 4) + '</td></tr>'; });
+    var h = '<thead><tr><th>Cash flow<br>' + tex('k', 'k') + '</th><th>Time (years)<br>' + tex('t_k', 't<sub>k</sub>') + '</th><th>Amount<br>' + tex('CF_k', 'CF<sub>k</sub>') + '</th>' +
+      '<th>Discount factor<br>' + tex('\\left(1+\\frac{y}{m}\\right)^{-m\\,t_k}', '(1 + y/m)<sup>−m·t<sub>k</sub></sup>') + '</th><th>Present value<br>' + tex('PV_k', 'PV<sub>k</sub>') + '</th>' +
+      '<th>Weighted by time<br>' + tex('t_k\\,PV_k', 't<sub>k</sub> · PV<sub>k</sub>') + '</th><th>For convexity<br>' + tex('t_k\\left(t_k+\\frac{1}{m}\\right)PV_k', 't<sub>k</sub>(t<sub>k</sub> + 1/m) · PV<sub>k</sub>') + '</th></tr></thead><tbody>';
+    a.rows.filter(function (r) { return r.cf > 0; }).forEach(function (r, j) { h += '<tr><td>' + (j + 1) + '</td><td>' + fmt(r.t, 4).replace(/\.?0+$/, '') + '</td><td>' + money(r.cf) + '</td><td>' + fmt(r.df, 6) + '</td><td>' + fmt(r.pv, 4) + '</td><td>' + fmt(r.tpv, 4) + '</td><td>' + fmt(r.cpv, 4) + '</td></tr>'; });
     h += '<tr class="total"><td>Total</td><td></td><td></td><td></td><td>' + fmt(a.price, 4) + '</td><td>' + fmt(a.sumTPV, 4) + '</td><td>' + fmt(a.sumCPV, 4) + '</td></tr></tbody>';
     $('calcTbl').innerHTML = h;
-    $('calcSum').innerHTML = 'y/m = ' + fmt(b.y, 2) + '% / ' + b.m + ' = ' + fmt(i * 100, 4) + '% per period<br>' +
-      'D<sub>M</sub> = ' + fmt(a.sumTPV, 4) + ' / ' + fmt(a.price, 4) + ' = <b>' + fmt(a.macaulay, 4) + ' years</b><br>' +
-      'D<sub>mod</sub> = ' + fmt(a.macaulay, 4) + ' / ' + fmt(1 + i, 6) + ' = <b>' + fmt(a.modified, 4) + '</b><br>' +
-      'Conv = ' + fmt(a.sumCPV, 4) + ' / (' + fmt(a.price, 4) + ' · ' + fmt(1 + i, 6) + '²) = <b>' + fmt(a.convexity, 4) + '</b>';
+    var q = fmt(1 + i, 6), P = fmt(a.price, 4);
+    var lines = [
+      '\\frac{y}{m}&=\\frac{' + tn(fmt(b.y, 2) + '%') + '}{' + b.m + '}=' + tn(fmt(i * 100, 4) + '%') + '\\ \\text{per period}',
+      'D_{\\text{M}}&=\\frac{\\sum_k t_k\\,PV_k}{P}=\\frac{' + tn(fmt(a.sumTPV, 4)) + '}{' + tn(P) + '}=\\mathbf{' + tn(fmt(a.macaulay, 4)) + '}\\ \\text{years}',
+      'D_{\\text{mod}}&=\\frac{D_{\\text{M}}}{1+y/m}=\\frac{' + tn(fmt(a.macaulay, 4)) + '}{' + tn(q) + '}=\\mathbf{' + tn(fmt(a.modified, 4)) + '}',
+      '\\text{Conv}&=\\frac{' + tn(fmt(a.sumCPV, 4)) + '}{' + tn(P) + '\\times ' + tn(q) + '^{2}}=\\mathbf{' + tn(fmt(a.convexity, 4)) + '}'
+    ];
+    var plain = 'y/m = ' + fmt(b.y, 2) + '% / ' + b.m + ' = ' + fmt(i * 100, 4) + '% per period<br>' +
+      'D<sub>M</sub> = ' + fmt(a.sumTPV, 4) + ' / ' + P + ' = <b>' + fmt(a.macaulay, 4) + ' years</b><br>' +
+      'D<sub>mod</sub> = ' + fmt(a.macaulay, 4) + ' / ' + q + ' = <b>' + fmt(a.modified, 4) + '</b><br>' +
+      'Conv = ' + fmt(a.sumCPV, 4) + ' / (' + P + ' · ' + q + '²) = <b>' + fmt(a.convexity, 4) + '</b>';
+    $('calcSum').innerHTML = tex('\\begin{aligned}' + lines.join('\\\\[8pt]') + '\\end{aligned}', plain, true);
   }
 
   /* ---------- price change ---------- */
   function drawChange() {
     var el = $('chg'), ok = isFinite(dy);
-    $('dyHint').innerHTML = ok ? 'Yields ' + (dy > 0 ? 'rise' : dy < 0 ? 'fall' : 'do not move') + (dy ? ' by ' + fmt(Math.abs(dy) * 100, 0) + ' basis points' : '') + ' (Δy = ' + fmt(dy / 100, 4) + ').' : 'Type a number, for example 1 or −0.5.';
+    $('dyHint').innerHTML = ok ? 'Yields ' + (dy > 0 ? 'rise' : dy < 0 ? 'fall' : 'do not move') + (dy ? ' by ' + fmt(Math.abs(dy) * 100, 0) + ' basis points' : '') + ' (' + tex('\\Delta y=' + tn(fmt(dy / 100, 4)), 'Δy = ' + fmt(dy / 100, 4)) + ').' : 'Type a number, for example 1 or −0.5.';
     if (!ok) { el.innerHTML = ''; return; }
     var h = '<thead><tr><th>Bond</th><th>Yield<br>before → after</th><th>Price<br>before</th><th>Exact<br>new price and change</th><th>Duration only<br>estimated price and change</th><th>Duration + convexity<br>estimated price and change</th></tr></thead><tbody>';
     ordered().forEach(function (b) {
@@ -437,6 +486,7 @@ const Core = (function () {
   themeBtn.addEventListener('click', function () { mode = modes[(modes.indexOf(mode) + 1) % 3]; applyTheme(); });
   applyTheme();
 
+  typesetStatic();
   bonds = [make(0)];
   buildCards(); draw(); lastW = $('chartbox').clientWidth;
 })();
